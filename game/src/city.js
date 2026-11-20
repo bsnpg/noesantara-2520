@@ -1,259 +1,281 @@
-// Noesantara 2520 — the city: 7 coloured districts, temple-tiered chrome
-// towers, batik hologram billboards, gapura gates, bright warm tropical light.
-// Fresh build; procedural canvas textures only, no external assets.
-// Lights live in render.js only (no duplicate sun/hemisphere here).
+
+
+
+
+
 import * as THREE from '../vendor/three.module.min.js';
+import * as A from './assets3d.js';
 import { createRandom } from './random.js';
 
-// Procedural batik: parang (wavy diagonal bands), kawung (petal circles),
-// mega mendung (scalloped cloud rows). Returns a canvas texture.
-function batik(kind, c1, c2) {
-  const s = 256, cv = document.createElement('canvas');
-  cv.width = cv.height = s;
-  const x = cv.getContext('2d');
-  const css = (n) => '#' + (n >>> 0).toString(16).padStart(6, '0');
-  x.fillStyle = css(c1); x.fillRect(0, 0, s, s);
-  x.strokeStyle = css(c2); x.fillStyle = css(c2); x.lineWidth = 5;
-  if (kind === 'parang') {
-    for (let i = -s; i < s * 2; i += 32) {
-      x.beginPath();
-      for (let t = 0; t <= s; t += 8) x.lineTo(i + t, t + Math.sin(t / 28) * 10);
-      x.stroke();
-    }
-  } else if (kind === 'kawung') {
-    for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) {
-      const cx = i * 64 + 32, cy = j * 64 + 32;
-      for (let k = 0; k < 4; k++) {
-        x.beginPath();
-        x.arc(cx + Math.cos(k * 1.5708) * 26, cy + Math.sin(k * 1.5708) * 26, 22, 0, 6.283);
-        x.stroke();
-      }
-      x.beginPath(); x.arc(cx, cy, 8, 0, 6.283); x.fill();
-    }
-  } else {
-    for (let r = 0; r < 4; r++) for (let i = -1; i < 5; i++) {
-      const cx = i * 64 + (r % 2 ? 32 : 0), cy = r * 64 + 32;
-      x.beginPath(); x.arc(cx, cy, 26, Math.PI, 0); x.stroke();
-      x.beginPath(); x.arc(cx - 18, cy + 8, 16, Math.PI * 0.5, Math.PI * 1.5); x.stroke();
-    }
-  }
-  const t = new THREE.CanvasTexture(cv);
-  t.colorSpace = THREE.SRGBColorSpace;
-  return t;
-}
-
 const DISTRICTS = [
-  { name: 'Distrik Neon', colour: 0xff4fa3, accent: 0x2de1c2, centre: [-230, -200], faction: 'Wolves', landmark: 'Gapura Neon', missions: [1, 3] },
-  { name: 'Pasar Nusantara', colour: 0xffb020, accent: 0xff7a1a, centre: [230, -200], faction: 'Neutral', landmark: 'Gapura Pasar + Menara Jam', missions: [3] },
-  { name: 'Undercity', colour: 0xb03a2e, accent: 0x3a3f4a, centre: [-230, 200], faction: 'Vipers', landmark: 'Gerbang Undercity', missions: [5, 6] },
-  { name: 'Spire', colour: 0xf2c94c, accent: 0xffffff, centre: [0, 0], faction: 'Syndicate', landmark: 'Menara Spire', missions: [8] },
-  { name: 'Distrik Candi', colour: 0x2fae8f, accent: 0x7ed957, centre: [230, 200], faction: 'Neutral', landmark: 'Candi Agung', missions: [] },
-  { name: 'Skyport', colour: 0x3a7bd5, accent: 0x9fd8ff, centre: [-230, 0], faction: 'Wolves', landmark: 'Menara Kontrol', missions: [] },
-  { name: 'Taman Gantung', colour: 0x4caf50, accent: 0xffd27a, centre: [230, 0], faction: 'Neutral', landmark: 'Pohon Raksasa', missions: [] },
+ { name: 'Distrik Neon', colour: 0xff4fa3, accent: 0x2de1c2, centre: [-230, -200], faction: 'Wolves', landmark: 'Gapura Neon', missions: [1, 3] },
+ { name: 'Pasar Nusantara', colour: 0xffb020, accent: 0xff7a1a, centre: [230, -200], faction: 'Neutral', landmark: 'Gapura Pasar + Menara Jam', missions: [3] },
+ { name: 'Undercity', colour: 0xb03a2e, accent: 0x3a3f4a, centre: [-230, 200], faction: 'Vipers', landmark: 'Gerbang Undercity', missions: [5, 6] },
+ { name: 'Spire', colour: 0xf2c94c, accent: 0xffffff, centre: [0, 0], faction: 'Syndicate', landmark: 'Menara Spire', missions: [8] },
+ { name: 'Distrik Candi', colour: 0x2fae8f, accent: 0x7ed957, centre: [230, 200], faction: 'Neutral', landmark: 'Candi Agung', missions: [] },
+ { name: 'Skyport', colour: 0x3a7bd5, accent: 0x9fd8ff, centre: [-230, 0], faction: 'Wolves', landmark: 'Menara Kontrol', missions: [] },
+ { name: 'Taman Gantung', colour: 0x4caf50, accent: 0xffd27a, centre: [230, 0], faction: 'Neutral', landmark: 'Pohon Raksasa', missions: [] },
 ];
 
-const NS_AV = [-230, 0, 230]; // north-south avenues (x)
-const EW_AV = [-200, 0, 200]; // east-west avenues (z)
-const HALF = 360; // city half-size
+const HALF = 360;
+const NS_AV = [-230, 0, 230], EW_AV = [-200, 0, 200]; 
+const NS_CN = [-115, 115], EW_CN = [-100, 100]; 
+const RINGX = 320, RINGZ = 300; 
+
+const ALLEY_NS = [
+ { at: -280, a: -300, b: 300 }, { at: 280, a: -300, b: 300 }, { at: 50, a: -100, b: 100 },
+];
+const ALLEY_EW = [
+ { at: -150, a: -320, b: -115 }, { at: -150, a: 115, b: 320 },
+ { at: 150, a: -320, b: -115 }, { at: 150, a: 115, b: 320 },
+ { at: -50, a: -320, b: -115 }, { at: 50, a: -115, b: 115 }, { at: 50, a: 115, b: 320 },
+];
+
+const CLEAR = [[-170, -140], [-140, 120], [-160, 230], [-190, -170], [-180, 200], [-120, 230], [-200, -30], [0, 0], [-190, -120], [230, -160], [-200, 0], [230, 0]];
+
+
+const treePick = (i) => [A.makePalm, A.makeShadeTree, A.makeGardenTree][i % 3]();
+const ROWS = {
+ PK: [A.makeOfficeTower, 13.5, 13.5, 2],
+ PP: [A.makeShophouse, 9, 9, 1.5],
+ WH: [A.makeWarehouse, 14.6, 10.6, 2],
+ PS: [A.makeShophouse, 9, 9, 1.5],
+ PR: [A.makeHouse, 7.4, 7, 1.5],
+ HT: [A.makeHotel, 13, 11, 2],
+ TM: [treePick, 4.6, 4.6, 2],
+};
+
+const BLOCKS = [
+ [-313, -293, -241, -211, 'PP', 1], [-219, -293, -121, -211, 'PK', 1], [-313, -189, -241, -106, 'PR', 1], [-219, -189, -121, -106, 'PP', 1],
+ [121, -293, 219, -211, 'PS', 1], [241, -293, 313, -211, 'PS', 1], [121, -189, 219, -106, 'PS', 1], [241, -189, 313, -106, 'PP', 1],
+ [-313, 106, -241, 189, 'PR', 1], [-219, 106, -121, 189, 'PS', 1], [-313, 211, -241, 293, 'PR', 1], [-219, 211, -121, 293, 'WH', 1],
+ [-109, -94, -11, -11, 'PK', 1.25], [11, -94, 109, -11, 'PK', 1], [-109, 11, -11, 94, 'HT', 1], [11, 11, 109, 94, 'TM', 1],
+ [121, 106, 219, 189, 'TM', 1], [241, 106, 313, 189, 'TM', 1], [121, 211, 219, 293, 'TM', 1], [241, 211, 313, 293, 'PP', 1],
+ [-313, -94, -241, -11, 'PK', 1], [-219, -94, -121, -11, 'PK', 1], [-313, 11, -241, 94, 'WH', 1], [-219, 11, -121, 94, 'WH', 1],
+ [121, -94, 219, -11, 'TM', 1], [241, -94, 313, -11, 'HT', 1], [121, 11, 219, 94, 'TM', 1], [241, 11, 313, 94, 'PR', 1],
+ [-109, -293, -11, -211, 'PK', 1], [11, -293, 109, -211, 'PK', 1], [-109, -189, -11, -106, 'PP', 1], [11, -189, 109, -106, 'PP', 1],
+ [-109, 106, -11, 189, 'PR', 1], [11, 106, 109, 189, 'PR', 1], [-109, 211, -11, 293, 'PP', 1], [11, 211, 109, 293, 'PP', 1],
+];
+
+const FEATURES = [
+ [A.makeSpireTower, 0, 0, 0, 1, 7, 7],
+ [A.makeClockTower, 170, -252, 0, 1, 3, 3],
+ [A.makeTemple, 170, 148, 0, 1, 7, 7],
+ [A.makeMall, -297, -252, Math.PI / 2, 1, 8, 11],
+ [A.makeMarketHall, 252, -250, 0, 1, 9, 7],
+ [A.makeGapura, -230, -260, 0, 1, 8, 2], [A.makeGapura, 230, -260, 0, 1, 8, 2],
+ [A.makeGapura, -230, 260, 0, 1, 8, 2], [A.makeGapura, 230, 260, 0, 1, 8, 2],
+ [A.makeSignMarket, 170, -222, 0, 1, 5, 1],
+ [A.makeSignOffice, -57, -25, 0, 1, 4, 1],
+ [A.makeSignNPD, -40, -80, 0, 1, 4, 1],
+ [A.makeSignGarage, -172, 85, Math.PI, 1, 4, 1],
+ [A.makeBillboardPylon, 60, 50, 0, 1, 5, 2],
+ [A.makeBillboardPole, -150, -180, 0, 1, 3, 1], [A.makeBillboardPole, 150, -180, 0, 1, 3, 1],
+ [A.makeFountain, 40, 70, 0, 1, 3, 3],
+ [A.makeGardenTree, 170, -50, 0, 2.2, 5, 5],
+ [A.makeBusStop, -216, -150, -Math.PI / 2, 1, 2, 2], [A.makeBusStop, 216, 150, Math.PI / 2, 1, 2, 2],
+ [A.makeBusStop, -216, 150, -Math.PI / 2, 1, 2, 2], [A.makeBusStop, 216, -150, Math.PI / 2, 1, 2, 2],
+ [A.makeFlagPole, 25, 25, 0, 1, 1, 1], [A.makeFlagPole, 150, -240, 0, 1, 1, 1], [A.makeFlagPole, 150, 130, 0, 1, 1, 1],
+];
 
 export function initCity(G) {
-  if (!G || !G.scene) return;
-  const T = G.THREE || THREE;
-  const rng = G.rng || createRandom(G.seed || 2520);
-  const scene = G.scene;
+ if (!G || !G.scene) return;
+ const T = G.THREE || THREE;
+ const rng = G.rng || createRandom(G.seed || 2520);
+ const scene = G.scene;
+ const cityG = new T.Group(); 
+ const placed = []; 
 
-  // Shared geometry + materials (mesh count stays sane).
-  const box = new T.BoxGeometry(1, 1, 1);
-  const cone = new T.ConeGeometry(0.5, 1, 4);
-  const cyl = new T.CylinderGeometry(1, 1, 1, 8);
-  const sph = new T.SphereGeometry(1, 10, 8);
-  const chrome = new T.MeshStandardMaterial({ color: 0xdfe6ea, metalness: 0.9, roughness: 0.25 });
-  const gold = new T.MeshStandardMaterial({ color: 0xf2c94c, metalness: 0.8, roughness: 0.3 });
-  const dark = new T.MeshStandardMaterial({ color: 0x3a3f4a, metalness: 0.4, roughness: 0.7 });
-  const roadMat = new T.MeshStandardMaterial({ color: 0x333845, roughness: 0.9 });
-  const groundMat = new T.MeshStandardMaterial({ color: 0xc79a6b, roughness: 1 });
-  const leafMat = new T.MeshStandardMaterial({ color: 0x3f9e4d, roughness: 1 });
-  const trunkMat = new T.MeshStandardMaterial({ color: 0x7a5230, roughness: 1 });
-  const glowGold = new T.MeshBasicMaterial({ color: 0xf2c94c });
-  const glowTeal = new T.MeshBasicMaterial({ color: 0x2de1c2 });
-  const tintMats = {};
-  const tint = (c) => (tintMats[c] || (tintMats[c] = new T.MeshStandardMaterial({ color: c, metalness: 0.6, roughness: 0.35 })));
+ function blocked(x, z, hw, hd) {
+ for (const r of placed) if (Math.abs(x - r[0]) < hw + r[2] + 1 && Math.abs(z - r[1]) < hd + r[3] + 1) return true;
+ return false;
+ }
+ function put(mk, x, z, ry, s, hw, hd) {
+ const g = mk();
+ g.position.set(x, 0, z);
+ if (ry) g.rotation.y = ry;
+ if (s && s !== 1) g.scale.setScalar(s);
+ cityG.add(g);
+ placed.push([x, z, hw, hd]);
+ return g;
+ }
+ 
+function clearOf(x, z, hw, hd) { for (const c of CLEAR) if (Math.abs(x - c[0]) < hw + 8 && Math.abs(z - c[1]) < hd + 8) return false; return true; }
+ function rowH(z, xA, xB, ry, spec, sc) {
+ const mk = spec[0], fw = spec[1] * sc, fd = spec[2] * sc, step = fw + spec[3];
+ const n = Math.max(0, Math.floor((xB - xA) / step));
+ let x = (xA + xB) / 2 - (n - 1) * step / 2;
+ for (let k = 0; k < n; k++, x += step) if (!blocked(x, z, fw / 2, fd / 2) && clearOf(x, z, fw / 2, fd / 2)) put(() => mk(k), x, z, ry, sc, fw / 2, fd / 2);
+ }
+ function rowV(x, zA, zB, ry, spec, sc) {
+ const mk = spec[0], fw = spec[1] * sc, fd = spec[2] * sc, step = fw + spec[3];
+ const n = Math.max(0, Math.floor((zB - zA) / step));
+ let z = (zA + zB) / 2 - (n - 1) * step / 2;
+ for (let k = 0; k < n; k++, z += step) if (!blocked(x, z, fd / 2, fw / 2) && clearOf(x, z, fd / 2, fw / 2)) put(() => mk(k), x, z, ry, sc, fd / 2, fw / 2);
+ }
+ function nearAlley(x, z, fd) {
+ const c = 2.5 + 3 + fd + 2;
+ for (const s of ALLEY_NS) if (s.a < z && z < s.b && Math.abs(x - s.at) < c) return true;
+ for (const s of ALLEY_EW) if (s.a < x && x < s.b && Math.abs(z - s.at) < c) return true;
+ return false;
+ }
+ function nearClear(x, z) {
+ for (const c of CLEAR) { const dx = x - c[0], dz = z - c[1]; if (dx * dx + dz * dz < 144) return true; }
+ return false;
+ }
 
-  function put(mat, sx, sy, sz, x, y, z, ry) {
-    const m = new T.Mesh(box, mat);
-    m.scale.set(sx, sy, sz);
-    m.position.set(x, y, z);
-    if (ry) m.rotation.y = ry;
-    scene.add(m);
-    return m;
-  }
+ 
+ const ground = new T.Mesh(new T.PlaneGeometry(HALF * 2 + 40, HALF * 2 + 40),
+ new T.MeshStandardMaterial({ color: 0xcbb98a, roughness: 1 }));
+ ground.rotation.x = -Math.PI / 2;
+ cityG.add(ground);
+ const lawnMat = new T.MeshStandardMaterial({ color: 0x4a9e57, roughness: 1 });
+ const plazaMat = new T.MeshStandardMaterial({ color: 0xdbca9e, roughness: 1 });
+ for (const b of BLOCKS) {
+ const zone = b[4];
+ if (zone !== 'TM' && zone !== 'PS' && !(b[0] === 11 && b[1] === 11)) continue;
+ const w = b[2] - b[0], d = b[3] - b[1];
+ const m = new T.Mesh(new T.PlaneGeometry(w, d), zone === 'TM' ? lawnMat : plazaMat);
+ m.rotation.x = -Math.PI / 2;
+ m.position.set((b[0] + b[2]) / 2, 0.05, (b[1] + b[3]) / 2);
+ cityG.add(m);
+ }
+ 
+ const roadMat = new T.MeshStandardMaterial({ color: 0x333845, roughness: 0.9 });
+ const alleyMat = new T.MeshStandardMaterial({ color: 0x9a8f7a, roughness: 1 });
+ const glowGold = new T.MeshBasicMaterial({ color: 0xf2c94c });
+ const glowTeal = new T.MeshBasicMaterial({ color: 0x2de1c2 });
+ function road(w, d, x, z, mat) {
+ const m = new T.Mesh(new T.BoxGeometry(w, 0.2, d), mat || roadMat);
+ m.position.set(x, 0.1, z);
+ cityG.add(m);
+ return m;
+ }
+ for (const x of NS_AV) {
+ road(22, HALF * 2, x, 0);
+ const l = new T.Mesh(new T.BoxGeometry(0.6, 0.25, HALF * 2), glowGold);
+ l.position.set(x, 0.12, 0); cityG.add(l);
+ const h = new T.Mesh(new T.BoxGeometry(0.5, 0.5, HALF * 2), glowTeal);
+ h.position.set(x + 6, 7, 0); cityG.add(h);
+ }
+ for (const z of EW_AV) {
+ road(HALF * 2, 22, 0, z);
+ const l = new T.Mesh(new T.BoxGeometry(HALF * 2, 0.25, 0.6), glowGold);
+ l.position.set(0, 0.12, z); cityG.add(l);
+ const h = new T.Mesh(new T.BoxGeometry(HALF * 2, 0.5, 0.5), glowTeal);
+ h.position.set(0, 7, z + 6); cityG.add(h);
+ }
+ for (const x of NS_CN) road(12, HALF * 2, x, 0);
+ for (const z of EW_CN) road(HALF * 2, 12, 0, z);
+ road(14, HALF * 2 + 28, -RINGX, 0); road(14, HALF * 2 + 28, RINGX, 0);
+ road(HALF * 2 + 28, 14, 0, -RINGZ); road(HALF * 2 + 28, 14, 0, RINGZ);
+ for (const s of ALLEY_NS) road(5, s.b - s.a, s.at, (s.a + s.b) / 2, alleyMat);
+ for (const s of ALLEY_EW) road(s.b - s.a, 5, (s.a + s.b) / 2, s.at, alleyMat);
 
-  // Ground + roads (avenues) with gold centre lines.
-  const ground = new T.Mesh(new T.PlaneGeometry(HALF * 2 + 40, HALF * 2 + 40), groundMat);
-  ground.rotation.x = -Math.PI / 2;
-  scene.add(ground);
-  for (const x of NS_AV) {
-    put(roadMat, 22, 0.2, HALF * 2, x, 0.1, 0);
-    put(glowGold, 0.6, 0.25, HALF * 2, x, 0.12, 0);
-  }
-  for (const z of EW_AV) {
-    put(roadMat, HALF * 2, 0.2, 22, 0, 0.1, z);
-    put(glowGold, HALF * 2, 0.25, 0.6, 0, 0.12, z);
-  }
-  // Upper hover lane: glowing teal rails above each avenue (racing lane).
-  for (const x of NS_AV) put(glowTeal, 0.5, 0.5, HALF * 2, x + 6, 7, 0);
-  for (const z of EW_AV) put(glowTeal, HALF * 2, 0.5, 0.5, 0, 7, z + 6);
+ 
+ for (const f of FEATURES) put(f[0], f[1], f[2], f[3], f[4], f[5], f[6]);
 
-  // Temple-tiered tower: stacked shrinking boxes + gold roof slabs + spire tip.
-  function tower(mat, w, h, tiers, x, z) {
-    const g = new T.Group();
-    let y = 0, cw = w;
-    for (let i = 0; i < tiers; i++) {
-      const th = (h / tiers) * (1 - i * 0.1);
-      const m = new T.Mesh(box, i === tiers - 1 ? gold : mat);
-      m.scale.set(cw, th, cw);
-      m.position.y = y + th / 2;
-      g.add(m);
-      const roof = new T.Mesh(box, gold);
-      roof.scale.set(cw * 1.14, 0.9, cw * 1.14);
-      roof.position.y = y + th + 0.45;
-      g.add(roof);
-      y += th + 0.9;
-      cw *= 0.72;
-    }
-    const tip = new T.Mesh(cone, gold);
-    tip.scale.set(cw, 7, cw);
-    tip.position.y = y + 3.5;
-    g.add(tip);
-    g.position.set(x, 0, z);
-    scene.add(g);
-    return g;
-  }
+ 
+ const SW = 3;
+ function fillBlock(b) {
+ const x0 = b[0], z0 = b[1], x1 = b[2], z1 = b[3], spec = ROWS[b[4]], sc = b[5];
+ const fd = spec[2] * sc, M = fd + 4;
+ rowH(z0 + SW + fd / 2, x0 + M, x1 - M, Math.PI, spec, sc);
+ rowH(z1 - SW - fd / 2, x0 + M, x1 - M, 0, spec, sc);
+ rowV(x0 + SW + fd / 2, z0 + M, z1 - M, -Math.PI / 2, spec, sc);
+ rowV(x1 - SW - fd / 2, z0 + M, z1 - M, Math.PI / 2, spec, sc);
+ for (const s of ALLEY_NS) {
+ if (s.at <= x0 || s.at >= x1 || s.b <= z0 || s.a >= z1) continue;
+ const za = Math.max(z0, s.a) + M, zb = Math.min(z1, s.b) - M;
+ rowV(s.at - 2.5 - SW - fd / 2, za, zb, Math.PI / 2, spec, sc);
+ rowV(s.at + 2.5 + SW + fd / 2, za, zb, -Math.PI / 2, spec, sc);
+ }
+ for (const s of ALLEY_EW) {
+ if (s.at <= z0 || s.at >= z1 || s.b <= x0 || s.a >= x1) continue;
+ const xa = Math.max(x0, s.a) + M, xb = Math.min(x1, s.b) - M;
+ rowH(s.at - 2.5 - SW - fd / 2, xa, xb, 0, spec, sc);
+ rowH(s.at + 2.5 + SW + fd / 2, xa, xb, Math.PI, spec, sc);
+ }
+ 
+ const ix0 = x0 + SW + fd, iz0 = z0 + SW + fd, ix1 = x1 - SW - fd, iz1 = z1 - SW - fd;
+ const zone = b[4];
+ if (ix1 - ix0 >= 6 && iz1 - iz0 >= 6) {
+ const n = zone === 'PS' ? 10 : zone === 'TM' ? 6 : 4;
+ for (let i = 0; i < n; i++) {
+ const px = ix0 + 2 + rng() * (ix1 - ix0 - 4), pz = iz0 + 2 + rng() * (iz1 - iz0 - 4);
+ if (nearAlley(px, pz, fd) || nearClear(px, pz)) continue;
+ if (zone === 'PS') { if (!blocked(px, pz, 1.8, 1.4)) put(A.makeMarketStall, px, pz, (i % 2) * Math.PI / 2, 1, 1.8, 1.4); }
+ else if (zone === 'TM') { if (!blocked(px, pz, 2.4, 2.4)) put(() => treePick(i), px, pz, 0, 1, 2.4, 2.4); }
+ else if (i % 3 === 0) { if (!blocked(px, pz, 1.6, 1.2)) put(A.makeKiosk, px, pz, rng() * 3.14, 1, 1.6, 1.2); }
+ else if (i % 3 === 1) { if (!blocked(px, pz, 1, 0.4)) put(A.makeBench, px, pz, rng() * 3.14, 1, 1, 0.4); }
+ else if (!blocked(px, pz, 0.8, 0.8)) put(A.makePlanter, px, pz, 0, 1, 0.8, 0.8);
+ }
+ }
+ }
+ for (const b of BLOCKS) fillBlock(b);
 
-  // Gapura gate: two pillars + lintel + tiered roof + batik banner.
-  function gapura(d, bx, bz, ry) {
-    const g = new T.Group();
-    const mat = tint(d.colour);
-    for (const s of [-1, 1]) {
-      const p = new T.Mesh(box, mat);
-      p.scale.set(2.4, 13, 2.4);
-      p.position.set(s * 6, 6.5, 0);
-      g.add(p);
-    }
-    const lin = new T.Mesh(box, gold);
-    lin.scale.set(15, 2, 2.6);
-    lin.position.y = 14;
-    g.add(lin);
-    const roof = new T.Mesh(box, mat);
-    roof.scale.set(12, 1.2, 4);
-    roof.position.y = 16;
-    g.add(roof);
-    const roof2 = new T.Mesh(box, gold);
-    roof2.scale.set(8, 1.2, 3.4);
-    roof2.position.y = 17.6;
-    g.add(roof2);
-    g.position.set(bx, 0, bz);
-    g.rotation.y = ry;
-    scene.add(g);
-  }
+ 
+ for (const x of NS_AV) for (let z = -330; z <= 330; z += 60) put(A.makeStreetLamp, x + 13, z, 0, 1, 1, 0.5);
+ for (const z of EW_AV) for (let x = -330; x <= 330; x += 60) put(A.makeStreetLamp, x, z + 13, Math.PI, 1, 1, 0.5);
+ for (const x of NS_AV) for (const z of EW_AV) {
+ if (x === 0 && z === 0) continue; 
+ put(A.makeTrafficLight, x + 14, z + 14, Math.PI, 1, 1, 1);
+ }
 
-  // Batik hologram billboards (bright, double-sided) — bases kept light enough
-  // to read as holograms at distance, never as floating black rectangles.
-  const holoTex = [
-    batik('parang', 0x0d5c60, 0x2de1c2),
-    batik('kawung', 0x6b3a00, 0xf2c94c),
-    batik('mega mendung', 0x1d4e6b, 0x7fd4ff),
-    batik('parang', 0x6b1e4a, 0xff4fa3),
-  ];
-  function billboard(x, y, z, ry, w, h, ti) {
-    const m = new T.Mesh(
-      new T.PlaneGeometry(w, h),
-      new T.MeshBasicMaterial({ map: holoTex[ti % holoTex.length], transparent: true, opacity: 0.95, side: T.DoubleSide })
-    );
-    m.position.set(x, y, z);
-    m.rotation.y = ry;
-    scene.add(m);
-  }
+ 
+ mergeGroup(cityG, scene, T);
 
-  // District towers + gapura + billboards.
-  const towerSpots = [[-58, -46], [58, -46], [-58, 46], [58, 46], [0, -72], [0, 72]];
-  for (const d of DISTRICTS) {
-    const [cx, cz] = d.centre;
-    if (d.name === 'Spire') continue; // centre gets Menara Spire below
-    const spots = towerSpots.slice(0, 5);
-    for (let i = 0; i < spots.length; i++) {
-      const [ox, oz] = spots[i];
-      const h = 20 + rng() * 22;
-      tower(rng() < 0.6 ? chrome : tint(d.colour), 13 + rng() * 8, h, 3 + Math.floor(rng() * 2), cx + ox, cz + oz);
-    }
-    // Gapura on the side facing the Spire (map centre).
-    const a = Math.atan2(-cz, -cx);
-    gapura(d, cx + Math.cos(a) * 95, cz + Math.sin(a) * 95, -a + Math.PI / 2);
-    billboard(cx - 40, 24, cz - 40, Math.PI / 4, 18, 11, DISTRICTS.indexOf(d));
-  }
+ G.districts = DISTRICTS.map((d) => ({
+ name: d.name, colour: d.colour, accent: d.accent,
+ centre: { x: d.centre[0], z: d.centre[1] },
+ faction: d.faction, landmark: d.landmark, missions: d.missions.slice(),
+ }));
+ G.city = { half: HALF, nsAvenues: NS_AV.slice(), ewAvenues: EW_AV.slice(), nsConnectors: NS_CN.slice(), ewConnectors: EW_CN.slice(), ring: { x: RINGX, z: RINGZ }, spire: { x: 0, z: 0 } };
+}
 
-  // Menara Spire: tallest golden temple at map centre.
-  tower(gold, 30, 95, 6, 0, 0);
-  billboard(0, 40, -22, 0, 26, 15, 1);
-  billboard(0, 40, 22, Math.PI, 26, 15, 0);
 
-  // Menara Jam (Pasar clock tower) + Menara Kontrol (Skyport).
-  tower(tint(0xffb020), 12, 42, 3, 230, -128);
-  const face = new T.Mesh(new T.CircleGeometry(4, 24), new T.MeshBasicMaterial({ color: 0xfff6d8 }));
-  face.position.set(230, 38, -121.4);
-  scene.add(face);
-  tower(tint(0x3a7bd5), 12, 48, 3, -158, 0);
-  const dish = new T.Mesh(sph, chrome);
-  dish.scale.set(5, 2.5, 5);
-  dish.position.set(-158, 52, 0);
-  scene.add(dish);
 
-  // Pasar Nusantara market stalls: counter + bright awning + goods.
-  const awnCols = [0xff4fa3, 0x2de1c2, 0xffb020, 0x7ed957, 0xff7a1a];
-  for (let i = 0; i < 10; i++) {
-    const sx = 170 + (i % 5) * 28, sz = -248 + Math.floor(i / 5) * 26;
-    put(tint(0x8a5a3a), 5, 1.4, 3, sx, 0.7, sz);
-    const awn = put(tint(awnCols[i % awnCols.length]), 6, 0.3, 4, sx, 3.4, sz);
-    awn.rotation.x = 0.25;
-    put(tint(awnCols[(i + 2) % awnCols.length]), 1.2, 1, 1.2, sx - 1.4, 1.9, sz);
-    put(tint(awnCols[(i + 3) % awnCols.length]), 1.2, 1, 1.2, sx + 1.4, 1.9, sz);
-  }
 
-  // Palms + hanging gardens (Taman Gantung) and the giant tree.
-  function palm(x, z, s) {
-    const tr = new T.Mesh(cyl, trunkMat);
-    tr.scale.set(0.5 * s, 7 * s, 0.5 * s);
-    tr.position.set(x, 3.5 * s, z);
-    scene.add(tr);
-    for (let k = 0; k < 3; k++) {
-      const c = new T.Mesh(cone, leafMat);
-      c.scale.set(5 * s, 3 * s, 5 * s);
-      c.position.set(x + (k - 1) * 1.6 * s, (7 + k * 1.2) * s, z);
-      c.rotation.z = (k - 1) * 0.5;
-      scene.add(c);
-    }
-  }
-  for (let i = 0; i < 10; i++) palm(170 + rng() * 120, -70 + rng() * 140, 0.8 + rng() * 0.5);
-  for (let i = 0; i < 4; i++) palm(170 + rng() * 120, 130 + rng() * 120, 0.8 + rng() * 0.4);
-  // Pohon Raksasa: giant tree at Taman Gantung centre.
-  const big = new T.Mesh(cyl, trunkMat);
-  big.scale.set(3, 26, 3);
-  big.position.set(230, 13, 0);
-  scene.add(big);
-  for (let k = 0; k < 3; k++) {
-    const f = new T.Mesh(sph, leafMat);
-    f.scale.set(16 - k * 3, 7, 16 - k * 3);
-    f.position.set(230, 28 + k * 6, 0);
-    scene.add(f);
-  }
-  // Hanging-garden vines on Candi towers (green slabs).
-  for (let i = 0; i < 6; i++) put(leafMat, 2, 10 + rng() * 8, 0.6, 190 + rng() * 80, 8, 160 + rng() * 80);
-
-  // District data for HUD / map / missions.
-  G.districts = DISTRICTS.map((d) => ({
-    name: d.name, colour: d.colour, accent: d.accent,
-    centre: { x: d.centre[0], z: d.centre[1] },
-    faction: d.faction, landmark: d.landmark, missions: d.missions.slice(),
-  }));
-  G.city = { half: HALF, nsAvenues: NS_AV.slice(), ewAvenues: EW_AV.slice(), spire: { x: 0, z: 0 } };
+function mergeGroup(group, scene, T) {
+ group.updateMatrixWorld(true);
+ const buckets = new Map();
+ const nv = new T.Vector3();
+ const nm = new T.Matrix3();
+ group.traverse((o) => {
+ if (!o.isMesh) return;
+ let geo = o.geometry;
+ if (geo.index) geo = geo.toNonIndexed();
+ const mats = Array.isArray(o.material) ? o.material : [o.material];
+ const groups = geo.groups.length ? geo.groups : [{ start: 0, count: geo.attributes.position.count, materialIndex: 0 }];
+ nm.getNormalMatrix(o.matrixWorld);
+ const e = o.matrixWorld.elements, ne = nm.elements;
+ const P = geo.attributes.position.array;
+ const N = geo.attributes.normal ? geo.attributes.normal.array : null;
+ const U = geo.attributes.uv ? geo.attributes.uv.array : null;
+ for (const gr of groups) {
+ const mat = mats[gr.materialIndex] || mats[0];
+ let bk = buckets.get(mat);
+ if (!bk) { bk = { pos: [], nor: [], uv: [], idx: [], v: 0 }; buckets.set(mat, bk); }
+ for (let vi = gr.start; vi < gr.start + gr.count; vi++) {
+ const x = P[vi * 3], y = P[vi * 3 + 1], z = P[vi * 3 + 2];
+ bk.pos.push(e[0] * x + e[4] * y + e[8] * z + e[12], e[1] * x + e[5] * y + e[9] * z + e[13], e[2] * x + e[6] * y + e[10] * z + e[14]);
+ if (N) {
+ const nx = N[vi * 3], ny = N[vi * 3 + 1], nz = N[vi * 3 + 2];
+ nv.set(ne[0] * nx + ne[3] * ny + ne[6] * nz, ne[1] * nx + ne[4] * ny + ne[7] * nz, ne[2] * nx + ne[5] * ny + ne[8] * nz).normalize();
+ bk.nor.push(nv.x, nv.y, nv.z);
+ } else bk.nor.push(0, 1, 0);
+ if (U) bk.uv.push(U[vi * 2], U[vi * 2 + 1]); else bk.uv.push(0, 0);
+ bk.idx.push(bk.v++);
+ }
+ }
+ o.geometry.dispose();
+ });
+ for (const [mat, bk] of buckets) {
+ const geo = new T.BufferGeometry();
+ geo.setAttribute('position', new T.Float32BufferAttribute(bk.pos, 3));
+ geo.setAttribute('normal', new T.Float32BufferAttribute(bk.nor, 3));
+ geo.setAttribute('uv', new T.Float32BufferAttribute(bk.uv, 2));
+ geo.setIndex(bk.idx);
+ scene.add(new T.Mesh(geo, mat));
+ }
 }

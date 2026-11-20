@@ -1,4 +1,5 @@
 import { CONFIG } from './config.js';
+import * as A from './assets3d.js';
 
 export function initShots(G) {
   const q = new URLSearchParams(location.search);
@@ -76,17 +77,30 @@ export function initShots(G) {
     const fwd = { x: -Math.sin(yaw), z: -Math.cos(yaw) }; // car forward
     const side = { x: Math.cos(yaw), z: -Math.sin(yaw) }; // car right side
     if (name === 'cover') {
-      // USER ORDER: all 4 shots in DAYTIME (bright warm afternoon sun).
-      G.setTimeOfDay?.(15.0);
-      // Camera on the far side of the car from the Spire, so the Spire, the
-      // Neon gapura and the temple towers stand behind the Garuda GT. The
-      // car sits WSW of the Spire, so the camera sits further WSW:
-      // (sx,sz) = car position normalised = direction Spire -> car.
-      const dl = Math.hypot(p.x, p.z) || 1;
-      const sx = p.x / dl, sz = p.z / dl;
+      // USER ORDER: all 4 shots in DAYTIME. Morning (~10:30): higher sun,
+      // cooler light, blue sky reads above the warm horizon band.
+      G.setTimeOfDay?.(10.5);
+      // Stage ON the z=0 east-west avenue, facing the Spire down a
+      // straight street corridor: the spawn plaza was a bare dirt field
+      // (huge empty foreground, Spire hidden behind low rows). Car at
+      // (-120,0) facing east (yaw -PI/2) down the avenue; camera WSW,
+      // low (y 3.5) so the car reads large in the lower frame and the
+      // 38 m Spire towers behind it at the end of the street, framed by
+      // tight buildings on both sides. Rear 3/4: roof + south wing +
+      // flank read as 3D, not a flat gold slab.
+      p.x = -120; p.z = 0;
+      if (G.car) {
+        G.car.heading = -Math.PI / 2; G.car.yaw = -Math.PI / 2;
+        G.car.group.position.set(-120, 0.55, 0);
+        G.car.group.rotation.y = -Math.PI / 2;
+      }
+      // Low camera wins: high camera flattened the car to a toy, cut the
+      // Spire off at the top edge, and the strips still slashed the
+      // frame. Low + near-side keeps the car big and 3D and the Spire
+      // tall; the strip stays a diagonal in the upper right only.
       G.shotCam = {
-        pos: V(p.x + sx * 7.5 + sz * 3, p.y + 2.2, p.z + sz * 7.5 - sx * 3),
-        look: V(p.x, p.y + 1.6, p.z),
+        pos: V(-133, p.y + 3.5, -6.5),
+        look: V(p.x, p.y + 2.2, p.z),
       };
       document.getElementById('hud')?.classList.add('hidden'); // photo mode
       if (G.car) { G.car.speed = 0; }
@@ -95,34 +109,33 @@ export function initShots(G) {
       crowdScene(p.x, p.z, 6, 14, aCam); // cheering crowd + traffic in frame
       confetti(p.x, p.z, G.shotCam.pos);
     } else if (name === 'driveby') {
-      G.setTimeOfDay?.(15.5); // daytime: bright afternoon
+      G.setTimeOfDay?.(11.0); // daytime: late morning, bluer sky
       // Stage the chase ON the Neon avenue (x=-230) so the road, traffic
       // and fleeing peds read as a street chase, not bare dirt.
       p.x = -230; p.z = -120;
       if (G.car) { G.car.heading = 0; G.car.group.position.set(-230, 0.55, -120); G.car.group.rotation.y = 0; }
+      // Camera WEST of the avenue, LOW (y 4.5, below the teal neon strip
+      // at y=7 on the east side) so the strip stays a thin line near the
+      // top of frame instead of slashing diagonally through it; narrower
+      // FOV (50) so the hero car reads large instead of a speck.
       G.shotCam = {
-        pos: V(p.x - fwd.x * 18 + side.x * 10, p.y + 11, p.z - fwd.z * 18 + side.z * 10),
-        look: V(p.x + fwd.x * 12, p.y + 1, p.z + fwd.z * 12),
+        pos: V(-240, p.y + 4.5, -106),
+        look: V(p.x, p.y + 1.5, p.z - 12),
       };
+      if (G.camera) { G.camera.fov = 50; G.camera.updateProjectionMatrix(); }
       document.getElementById('hud')?.classList.add('hidden');
       if (G.car) G.car.speed = 18;
-      // Kiko half out of the passenger window, SMG firing (built onto the car).
+      // Kiko half out of the passenger window, SMG firing (library ped + SMG).
+      // WEST side this time (x -1.3): the camera is west, so she leans
+      // toward the lens.
       if (G.car && G.car.group && !G._kiko) {
-        const k = new T.Group();
-        const dark = new T.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.6 });
-        const gold = new T.MeshStandardMaterial({ color: 0xf2c94c, metalness: 0.7, roughness: 0.3 });
-        const skin = new T.MeshStandardMaterial({ color: 0xc98d5f, roughness: 0.7 });
-        const bx = (w, h, d, m, x, y, z) => { const q = new T.Mesh(new T.BoxGeometry(w, h, d), m); q.position.set(x, y, z); k.add(q); return q; };
-        bx(0.5, 0.55, 0.3, dark, 0, 0.3, 0); // torso, dark tactical
-        bx(0.52, 0.08, 0.32, gold, 0, 0.55, 0); // gold trim
-        const head = new T.Mesh(new T.SphereGeometry(0.18, 10, 8), skin);
-        head.position.y = 0.72; k.add(head);
-        bx(0.09, 0.09, 0.6, dark, 0.1, 0.45, -0.35); // SMG forward
-        bx(0.1, 0.1, 0.1, gold, 0.1, 0.45, -0.68); // muzzle
-        k.position.set(1.3, 0.95, 0.35); // leaning further out, toward camera
-        k.scale.setScalar(1.35); // read clearly from the high chase camera
-        k.rotation.z = -0.55; // leaning out of the window
-        k.rotation.x = -0.15;
+        const k = A.makePed({ style: 'street', shirt: 0x1f2937, pants: 0x111827, skin: 0xc98d5f });
+        const smg = new T.Mesh(new T.BoxGeometry(0.09, 0.09, 0.6), new T.MeshStandardMaterial({ color: 0x1f2937, roughness: 0.6 }));
+        smg.position.set(-0.1, 1.05, -0.35); k.add(smg);
+        k.position.set(-1.2, 1.35, 0.35); // torso ABOVE the gold wing (y 1.08), leaning out toward camera
+        k.scale.setScalar(0.8);
+        k.rotation.z = 0.3; // slight lean: a 0.55 lean read as lying flat on the roof
+        k.rotation.x = -0.1;
         G.car.group.add(k);
         G._kiko = k;
       }
@@ -140,10 +153,17 @@ export function initShots(G) {
       });
       if (G.setChaos) G.setChaos(true); // peds flee
     } else if (name === 'fps') {
-      G.setTimeOfDay?.(14.5); // daytime: bright afternoon, sun high
+      G.setTimeOfDay?.(10.0); // daytime: morning, bluer sky
       G.player.onFoot = true; G.player.weapon = 3; // Rifle
+      // Move the player OFF the car spawn and onto the Neon avenue
+      // (x=-230, facing north down the road): at the spawn the FPS camera
+      // sat inside the Garuda GT and the whole frame was flat gold.
+      // Avenue is clear for ~20 m ahead, where stageFps puts the Vipers.
+      // West lane (x -236): 12 m clear of the teal neon strip (x -224),
+      // so it stays a thin line at the top of frame, not a diagonal slash.
+      G.player.pos.set(-236, 0, -60); G.player.yaw = 0;
       const pp = G.player.pos || G.player.position || V(0, 0, 0);
-      G.fpsCam = { pos: V(pp.x, pp.y + 1.7, pp.z), yaw: G.player.yaw || 0, pitch: -0.02 };
+      G.fpsCam = { pos: V(pp.x, pp.y + 1.7, pp.z), yaw: G.player.yaw || 0, pitch: 0.02 };
       G.shotCam = null;
       // Aim the real camera first so the floating bars project correctly.
       if (G.camera) {
@@ -154,10 +174,10 @@ export function initShots(G) {
       G.combat?.stageFps(); // gang war: 4 Vipers ahead, allies beside
       if (G.player.group) G.player.group.visible = false; // FPS: body hidden
       G.combat?.update?.(1 / 60); // one tick: viewmodel visible, bars projected
-      crowdScene(pp.x, pp.z, 4, 12); // peds fleeing down the market street
+      crowdScene(pp.x, pp.z, 4, 12, -Math.PI / 2); // peds fleeing down the market street; keep the north sight line clear
       document.getElementById('hud')?.classList.add('hidden');
     } else if (name === 'map') {
-      G.setTimeOfDay?.(15.0); // daytime: bright afternoon on the map clock
+      G.setTimeOfDay?.(10.5); // daytime: morning on the map clock
       G.state = 'map';
       document.getElementById('map')?.classList.remove('hidden');
       G.showMap?.();
