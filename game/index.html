@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noesantara 2520 — 8 Jobs to Own the Streets</title>
+<link rel="icon" href="data:,">
+<style>
+  html,body{margin:0;height:100%;overflow:hidden;background:#0d1420;font-family:system-ui,"Segoe UI",Arial,sans-serif}
+  #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
+  .layer{position:fixed;inset:0;pointer-events:none}
+  #hud{z-index:5;color:#ffe9a8}
+  #map,#wheel,#title{z-index:10;display:flex;align-items:center;justify-content:center}
+  #map{background:rgba(6,12,20,.92)}
+  #wheel{background:rgba(6,12,20,.45)}
+  #title{background:radial-gradient(ellipse at 50% 30%,#3a2a10 0%,#0d1420 70%);color:#ffe9a8;text-align:center;pointer-events:auto}
+  #title h1{font-size:52px;margin:0;color:#f5c542;text-shadow:0 0 24px #b8860b}
+  #title h2{font-size:20px;color:#2ec4b6;margin:8px 0 24px}
+  #title p{color:#cfd8dc;font-size:14px;line-height:1.7}
+  #title button{pointer-events:auto;margin-top:18px;padding:12px 42px;font-size:18px;background:#f5c542;color:#1a1206;border:2px solid #2ec4b6;border-radius:6px;cursor:pointer}
+  .hidden{display:none!important}
+  #status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+</style>
+</head>
+<body>
+<canvas id="game" aria-label="Noesantara 2520: open-world action in the city of Noesantara"></canvas>
+<div id="hud" class="layer"></div>
+<div id="map" class="layer hidden"></div>
+<div id="wheel" class="layer hidden"></div>
+<div id="title" class="layer">
+  <div>
+    <h1>NOESANTARA 2520</h1>
+    <h2>8 Jobs to Own the Streets</h2>
+    <p>Wowo "Ghost" — framed ex-NPD pilot, now street racer.<br>Clear your name. Take back the streets.</p>
+    <p>WASD drive / move &nbsp;·&nbsp; E enter car &nbsp;·&nbsp; Q hold weapon wheel<br>
+    M map &nbsp;·&nbsp; P photo mode &nbsp;·&nbsp; Esc pause &nbsp;·&nbsp; Shift boost</p>
+    <button id="startBtn">MULAI — START ENGINE</button>
+  </div>
+</div>
+<p id="status" role="status" aria-live="polite"></p>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

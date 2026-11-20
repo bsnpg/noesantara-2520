@@ -1,0 +1,118 @@
+// Missions: 8 scripted jobs. Phases advance by waypoint reach / counter / timer.
+// Progress is polled each frame via update(dt); other builders feed counters via
+// G.missions.counters (e.g. trucksDestroyed, checkpointsHeld, laps) and positions via
+// G.player.pos (Vector3) or G.player.x/z. Rewards pay through G.progression + G.hud.toast.
+// Waypoints use the unified city grid (Spire 0,0; Neon -230,-200; Skyport -230,0).
+const D = ['Distrik Neon', 'Pasar Nusantara', 'Undercity', 'Spire', 'Distrik Candi', 'Skyport', 'Taman Gantung'];
+const W = (x, z, r) => ({ x, z, r: r || 12 });
+function mk(id, name, en, di, reward, phases, opts) {
+  return Object.assign({ id, name, en, district: D[di], reward, phases, phase: 0, done: false, failed: false }, opts || {});
+}
+export function initMissions(G) {
+  const list = [
+    mk(0, 'Balapan Pertama', 'First Race', 0, { credits: 1200, xp: 300, item: "Peta Rute Mara" }, [
+      { obj: 'Ke garis start di Gapura Neon', en: 'Reach the start line at Gapura Neon', target: W(-170, -140) },
+      { obj: 'Balapan 3 lap — lap 1', en: 'Race 3 laps — lap 1', count: { key: 'laps', n: 1 } },
+      { obj: 'Lap 2 — hati-hati, ada yang menabrak!', en: 'Lap 2 — watch out, ramming!', count: { key: 'laps', n: 2 }, twist: 'Lap 2: mobil Viper menabrak dari samping.' },
+      { obj: 'Lap 3 — finis di bawah gapura', en: 'Lap 3 — finish under the gapura', count: { key: 'laps', n: 3 } },
+    ], { race: true }),
+    mk(1, 'Tembak dari Mobil', 'Drive-By Shooting', 1, { credits: 1500, xp: 350, item: 'Senjata Baru Kiko' }, [
+      { obj: 'Kiko naik — kejar konvoi', en: 'Kiko rides along — chase the convoy', target: W(-140, 120) },
+      { obj: 'Hancurkan 3 truk konvoi', en: 'Destroy 3 convoy trucks', count: { key: 'trucksDestroyed', n: 3 } },
+      { obj: 'Lolos dari NPD sebelum Gerbang Undercity', en: 'Escape the NPD before the Undercity gate', target: W(-160, 230), twist: 'NPD interceptor bergabung di tengah pengejaran.' },
+    ], { race: false }),
+    mk(2, 'Perang Geng: Distrik Neon', 'Gang War: Neon District', 0, { credits: 2000, xp: 500, item: 'Wilayah Wolves + Toko' }, [
+      { obj: 'Rebut pos pasar', en: 'Capture the market checkpoint', target: W(-190, -170) },
+      { obj: 'Rebut pos gapura', en: 'Capture the gapura checkpoint', target: W(-170, -140) },
+      { obj: 'Rebut menara parkir', en: 'Capture the parking tower', target: W(-230, -190), twist: 'Viper datang dengan hover-bike; Razor mengawasi dari atap.' },
+      { obj: 'Tahan wilayah sampai bersih', en: 'Hold the turf until clear', count: { key: 'vipersDown', n: 6 } },
+    ]),
+    mk(3, 'Balapan Maut', 'Death Race', 0, { credits: 2500, xp: 600, item: 'Rasa Hormat Razor + Mobil Rival' }, [
+      { obj: 'Balapan 3 lap di 180+ km/jam — lap 1', en: 'Race 3 laps at 180+ km/h — lap 1', count: { key: 'laps', n: 1 } },
+      { obj: 'Lap 2 — tembak sambil balapan', en: 'Lap 2 — shoot while racing', count: { key: 'laps', n: 2 } },
+      { obj: 'Lap terakhir — Viper mencoba mendorongmu jatuh', en: 'Final lap — a Viper tries to push you off', count: { key: 'laps', n: 3 }, twist: 'Lap terakhir: Viper mendorong Wowo ke arah Undercity.' },
+    ], { race: true }),
+    mk(4, 'Konvoi', 'Convoy Escort', 2, { credits: 2200, xp: 550, item: 'Sekutu Undercity' }, [
+      { obj: 'Kawal truk Gajah keluar dari Undercity', en: 'Escort the Gajah truck out of the Undercity', target: W(-180, 200) },
+      { obj: 'Lolos dari blokade jalan — lewat gang sempit', en: 'Pass the roadblock — take the narrow alley', target: W(-120, 230), twist: 'Blokade Viper memaksa konvoi masuk gang sempit.' },
+      { obj: 'Antar Gajah sampai ke Skyport', en: 'Deliver Gajah safely to Skyport', target: W(-200, -30) },
+    ], { truck: true }),
+    mk(5, 'Perang Geng: Undercity', 'Gang War: Undercity', 2, { credits: 3000, xp: 800, item: 'Markas Viper Jatuh + Kebenaran' }, [
+      { obj: 'Serbu jalanan Undercity bersama Wolves', en: 'Storm the Undercity streets with the Wolves', target: W(-180, 200) },
+      { obj: 'Kalahkan Viper di pasar gelap', en: 'Defeat the Vipers at the black market', count: { key: 'vipersDown', n: 8 } },
+      { obj: 'Duel Wowo vs Razor di tengah asap', en: 'Final duel: Wowo vs Razor in the smoke', count: { key: 'razorDown', n: 1 }, twist: 'Razor mengaku Syndicate yang menjebak Wowo, lalu kabur.' },
+    ], { boss: 'Razor' }),
+    mk(6, 'Balapan Terakhir', 'Final Race', 5, { credits: 3500, xp: 900, item: 'Kontrol Sirkuit + Bukti Razor' }, [
+      { obj: 'Duel 1 lawan 1 vs Razor — 5 lap, lap 1', en: '1v1 vs Razor — 5 laps, lap 1', count: { key: 'laps', n: 1 } },
+      { obj: 'Lap 2–4 — tanpa senjata', en: 'Laps 2–4 — no weapons', count: { key: 'laps', n: 4 }, twist: 'Drone Syndicate memasang spike strip — Mara meretasnya di detik terakhir.' },
+      { obj: 'Lap 5 — finis dan menangkan sirkuit', en: 'Lap 5 — finish and take the circuit', count: { key: 'laps', n: 5 } },
+    ], { race: true }),
+    mk(7, 'Rebut Kota', 'Take Back the City', 3, { credits: 5000, xp: 1500, item: 'Nama Bersih + Kota' }, [
+      { obj: 'FASE 1 — Balapan naik jalur spiral Spire', en: 'PHASE 1 — Race up the Spire spiral lane', target: W(0, 0, 20) },
+      { obj: 'FASE 2 — Serbu lobi Spire bersama NPD', en: 'PHASE 2 — Storm the Spire lobby with the NPD', count: { key: 'syndicateDown', n: 10 } },
+      { obj: 'FASE 3 — Hadapi bos Syndicate di atap', en: 'PHASE 3 — Confront the Syndicate boss on the roof', count: { key: 'bossDown', n: 1 }, twist: 'Bos Syndicate terekspos di siaran hologram langsung; kepala NPD menangkapnya.' },
+    ], { boss: 'Syndicate', phases3: true }),
+  ];
+  const counters = { laps: 0, trucksDestroyed: 0, vipersDown: 0, razorDown: 0, syndicateDown: 0, bossDown: 0 };
+  const M = {
+    list, active: null, counters, truckHp: 100,
+    start(i) {
+      const m = list[i]; if (!m || m.done) return false;
+      if (M.active) M.active.failed = false; // abandon current, keep progress
+      M.active = m; m.phase = 0; m.failed = false;
+      for (const k in counters) counters[k] = 0;
+      M.truckHp = 100;
+      if (m.truck) G.hud && G.hud.toast && G.hud.toast('Lindungi truk Gajah!', 'sub');
+      if (G.hud) { G.hud.banner(m.name, m.phases[0].en); G.hud.setObjective && G.hud.setObjective(m.phases[0].obj, m.phases[0].en); }
+      if (G.audio) G.audio.radio && G.audio.radio('Mara: ' + m.name + ' dimulai. Semoga beruntung, Ghost.');
+      return true;
+    },
+    bump(key, n) { counters[key] = (counters[key] || 0) + (n || 1); },
+    setTruckHp(hp) { M.truckHp = Math.max(0, hp); if (G.hud) G.hud.setTruckHp && G.hud.setTruckHp(M.truckHp); if (M.truckHp <= 0 && M.active && M.active.truck) M.fail('Truk Gajah hancur!'); },
+    checkpoint() { // save phase index so retry resumes here
+      if (M.active) M.active._cp = M.active.phase;
+      if (G.progression) G.progression.checkpoint();
+    },
+    fail(reason) {
+      const m = M.active; if (!m) return;
+      m.failed = true; M.active = null;
+      if (G.hud) { G.hud.banner('MISI GAGAL', reason || 'Mission failed'); G.hud.toast(reason || 'Misi gagal — coba lagi dari checkpoint', 'bad'); }
+      if (G.audio) G.audio.scream && G.audio.scream();
+    },
+    retry() { // resume from last checkpoint phase
+      const m = list.find(x => x.failed); if (!m) return false;
+      m.failed = false; m.phase = m._cp || 0; M.active = m;
+      for (const k in counters) counters[k] = 0;
+      if (G.hud) G.hud.banner(m.name, m.phases[m.phase].en);
+      return true;
+    },
+    complete() {
+      const m = M.active; if (!m) return;
+      m.done = true; M.active = null;
+      const r = m.reward;
+      if (G.progression) { G.progression.addCredits(r.credits); G.progression.addXp(r.xp); }
+      if (G.hud) G.hud.toast('+' + r.credits.toLocaleString('id-ID') + ' Credits  •  +' + r.xp + ' XP  •  ' + r.item, 'reward');
+      if (G.audio) G.audio.cheer && G.audio.cheer();
+      if (m.race && G.replay) G.replay.play && G.replay.play(); // finish-cam on race wins (M1, M4, M7)
+      if (G.progression) G.progression.autosave();
+      const next = list[m.id + 1];
+      if (next && !next.done && G.hud) setTimeout(() => G.hud.banner('Misi Berikutnya: ' + next.name, next.en), 2600);
+    },
+    update() {
+      const m = M.active; if (!m || !G.player) return;
+      const p = m.phases[m.phase]; if (!p) { M.complete(); return; }
+      const pos = G.player.pos || { x: G.player.x || 0, z: G.player.z || 0 };
+      let ok = false;
+      if (p.target) { const dx = pos.x - p.target.x, dz = pos.z - p.target.z; ok = dx * dx + dz * dz < p.target.r * p.target.r; }
+      else if (p.count) ok = (counters[p.count.key] || 0) >= p.count.n;
+      if (!ok) return;
+      m.phase += 1; M.checkpoint();
+      if (m.phase >= m.phases.length) { M.complete(); return; }
+      const np = m.phases[m.phase];
+      if (np.twist && G.hud) G.hud.toast(np.twist, 'twist');
+      if (G.hud) { G.hud.banner(m.name, np.en); G.hud.setObjective && G.hud.setObjective(np.obj, np.en); }
+      if (G.audio) G.audio.chime && G.audio.chime();
+    },
+  };
+  G.missions = M;
+}
