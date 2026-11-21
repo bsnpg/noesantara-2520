@@ -86,38 +86,70 @@ export function stageShot(name, ctx) {
     ctx.missions.standings = SF;
     ctx.player.inCar = true;
     ctx.player.mesh.visible = false;
+    // Face the hero WEST toward the camera (front 3/4, like the sealed shot):
+    // the car has just crossed the finish line and the Spire skyline sits
+    // behind it to the east. Heading follows the facing so the speedo stays 79.
     const car = ctx.vehicles.hero;
-    car.position.set(-222, 0, -200); car.rotation.y = 0;
-    ctx.driving.heading = 0; ctx.driving.speed = 79 / 3.2;
+    car.position.set(-222, 0, -200); car.rotation.y = Math.PI;
+    ctx.driving.heading = Math.PI; ctx.driving.speed = 79 / 3.2;
     const komodo = ctx.vehicles.komodo;
-    komodo.position.set(-238, 0, -208); komodo.rotation.y = 0;
+    komodo.position.set(-204, 0, -208); komodo.rotation.y = Math.PI;
     finishLine(ctx, -228, -200);
-    confetti(ctx, -222, -200);
+    confetti(ctx, -224, -200, 200);
+    confetti(ctx, -232, -198, 80);
+    // Crowd: dense on the sidewalks flanking the road (NOT on the road centre,
+    // so the hero stays visible) + along both road sides near the car.
+    ctx.traffic.addCrowd(-222, -190, 8, 4);
+    ctx.traffic.addCrowd(-222, -210, 8, 4);
+    ctx.traffic.addCrowd(-218, -192, 8, 6);
+    ctx.traffic.addCrowd(-218, -208, 8, 6);
     ctx.traffic.addCrowd(-206, -214, 8, 12);
-    ctx.traffic.addCrowd(-238, -186, 8, 12);
     const flagman = A.makePerson(0xf5f5f5, 0x222831);
     flagman.position.set(-226, 0, -212); ctx.scene.add(flagman);
     const flag = A.box(1.4, 0.9, 0.05, 0xffd700, -225.2, 2.6, -212);
     ctx.scene.add(flag);
-    ctx.traffic.addCar('taxi', -252, -192, 0);
-    ctx.traffic.addCar('angkot', -255, -208, 0);
-    ctx.shotCam = { pos: [-214, 2.4, -193], look: [-226, 1.2, -201] };
+    ctx.traffic.addCar('taxi', -200, -192, 0);
+    ctx.traffic.addCar('angkot', -196, -208, 0);
+    // Low, close front 3/4 from the south-west (~10 units out): finish line
+    // in the foreground, hero big near centre, eastern skyline behind.
+    ctx.shotCam = { pos: [-232, 2.0, -196], look: [-216, 1.5, -198] };
+    // Sealed shot has no weapon strip while driving; FISTS in the mini wheel.
+    ctx.wheel.select(0);
+    document.getElementById('weapon-strip').style.display = 'none';
   } else if (name === 'driveby') {
     ctx.missions.setMission(2, 1);
     // On foot ON the avenue (x=-230), facing north up Jl. Raya Barat toward
-    // the Gapura Neon — roads are clear of buildings, the gang war is ahead.
-    // Slight upward pitch so the avenue's tall rows sit below a strip of sky.
+    // the Gapura Neon — close-quarters gang war (like the sealed shot): the
+    // Vipers, allies and burning cars are 8-22 m ahead so the fight reads in
+    // the first 2 seconds. Player stays at -160 so TARGET reads 13 m to the
+    // stage-1 checkpoint (-230,-173), as in the sealed shot. Slight upward
+    // pitch so the avenue's tall rows sit below a strip of sky.
     setPlayerFoot(ctx, -230, -160, Math.PI / 2);
     ctx.player.pitch = 0.07;
-    ctx.combat.stageGangWar(-230, -180);
-    ctx.combat.spawnBurningCar('viper', -240, -195, 0.4);
-    ctx.combat.spawnBurningCar('taxi', -220, -205, -0.3);
-    ctx.combat.spawnBurningCar('angkot', -238, -215, 0.9);
-    ctx.combat.spawnBurningCar('viper', -224, -228, 1.2);
-    ctx.combat.spawnBurningCar('taxi', -236, -240, -0.8);
-    shellsOnGround(ctx, -230, -172);
-    ctx.traffic.addCrowd(-236, -170, 6, 14);
-    ctx.chaosAt = [-230, -172];
+    // 6 Vipers, close and spread across the avenue (manual spawn: stageGangWar
+    // stages them 25-35 m out, too far for this shot).
+    const vipers = [[-246, -174], [-238, -177], [-230, -172], [-222, -177], [-214, -174], [-206, -179]];
+    for (const [x, z] of vipers) ctx.combat.spawnEnemy('VIPER', x, z, 100);
+    ctx.combat.spawnAlly('Mara', A.makeMara, -244, -168);
+    ctx.combat.spawnAlly('Riko', A.makeRiko, -216, -168);
+    ctx.combat.spawnAlly('Kiko', A.makeKiko, -230, -170);
+    ctx.combat.spawnBurningCar('viper', -240, -178, 0.4);
+    ctx.combat.spawnBurningCar('taxi', -220, -180, -0.3);
+    ctx.combat.spawnBurningCar('angkot', -238, -190, 0.9);
+    ctx.combat.spawnBurningCar('viper', -224, -194, 1.2);
+    ctx.combat.spawnBurningCar('taxi', -236, -204, -0.8);
+    shellsOnGround(ctx, -230, -166);
+    ctx.traffic.addCrowd(-236, -166, 8, 10);
+    ctx.traffic.addCrowd(-224, -168, 8, 10);
+    ctx.chaosAt = [-230, -168];
+    // Big, bright gold rifle viewmodel (like the sealed shot): scale the
+    // viewmodel up, light it emissive, and angle the barrel up-left toward
+    // the crosshair (diagonal, butt at the bottom-right corner).
+    const vm = ctx.combat.viewmodel;
+    vm.scale.setScalar(0.75);
+    vm.position.set(0.58, -0.52, -1.1);
+    vm.rotation.set(0.51, 2.30, 0);
+    vm.children[0].material = A.mat(0xffd700, 0xffd700, 0.7);
     ctx.shotCam = null; // FPS camera from the player
   } else if (name === 'fps') {
     ctx.missions.setMission(2, 4);

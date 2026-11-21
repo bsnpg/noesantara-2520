@@ -20,6 +20,7 @@ import { createPolice } from './police.js';
 import { createAudio } from './audio.js';
 import { createReplay } from './replay.js';
 import { drawBigMap } from './map.js';
+import { makeWowo } from './assets3d.js';
 import { stageShot } from './shots.js';
 
 const params = new URLSearchParams(window.location.search);
@@ -51,6 +52,13 @@ ctx.traffic = createTraffic(ctx);
 ctx.police = createPolice(ctx);
 ctx.replay = createReplay(ctx);
 buildCity(ctx);
+// Title Wowo: a big Wowo on the right of the title screen, attached to the
+// camera so he stays put while the title camera orbits the city.
+const titleWowo = makeWowo();
+titleWowo.scale.setScalar(2.5);
+titleWowo.position.set(5, -2, -10);
+titleWowo.visible = false;
+ctx.render.camera.add(titleWowo);
 ctx.progression.load();
 window.__ctx = ctx; // diagnostics hook (scene inspection from the console)
 
@@ -96,6 +104,7 @@ function startGame() {
   if (started) return;
   started = true;
   ctx.audio.unlock();
+  titleWowo.visible = false;
   $('title-screen').style.display = 'none';
   $('hud').style.display = 'block';
   ctx.player.inCar = true;
@@ -128,6 +137,7 @@ function frame(now) {
   if (!started && !shot) {
     const a = ctx.time * 0.04;
     ctx.render.place(-20 + Math.cos(a) * 175, 48, -20 + Math.sin(a) * 175, 35, 16, 35);
+    titleWowo.visible = true;
     ctx.traffic.update(dt, null);
     ctx.render.render();
     return;
