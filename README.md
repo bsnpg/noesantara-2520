@@ -1,15 +1,18 @@
-# noesantara-2520
+# Noesantara 2520
 
 [![make.fun · gta6-01](https://make.fun/badge/gta6-01.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 [![rank](https://make.fun/badge/gta6-01/bsnpg/noesantara-2520/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 [![reward](https://make.fun/badge/gta6-01/bsnpg/noesantara-2520/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 
-**Noesantara 2520: 8 Jobs to Own the Streets** — a static-files open-world action
-game (three.js, no network). Year 2520, city Noesantara, capital of Republik
-Vantara. Wowo "Ghost", framed ex-NPD pilot turned street racer, clears his name
-across 8 missions: races, drive-bys, gang wars and a rooftop showdown at the
-Spire. Crowded grand city: 7 districts, temple towers, batik holograms, 64
-pedestrians, 18 civilian cars, chaos that makes crowds flee.
+**Noesantara 2520: 8 Jobs to Own the Streets** — an open-world action game
+in static files (three.js, no network calls). The year is 2520. Noesantara,
+capital of the Republik Vantara, is a crowded grand city of 7 districts:
+temple towers, batik holograms, 64 pedestrians and 18 civilian cars on the
+streets, crowds that flee when chaos breaks out.
+
+Wowo "Ghost" is an ex-NPD pilot framed for the Spire vault-code theft. The
+Neon Wolves took him in. Eight jobs — races, drive-bys, gang wars and a
+rooftop showdown at the Spire — to clear his name and take the city back.
 
 ## Run it
 
@@ -18,12 +21,12 @@ node serve.ts
 # open http://localhost:8080 — or open game/index.html directly
 ```
 
-## How to play
+## Playing
 
 Drive the gold Garuda GT, fight on foot, take jobs from the mission banner.
-Wanted stars rise when you hit civilians or NPD; hide 15 s or finish a mission
-to cool off. Earn Credits + XP, upgrade the car at Riko's garage (Skyport),
-buy weapons at Pasar Nusantara, collect 50 batik holograms.
+Hit civilians or the NPD and wanted stars rise; hide for 15 s or finish a
+mission to cool off. Earn Credits and XP, upgrade the car at Riko's garage
+in Skyport, buy weapons at Pasar Nusantara, and collect 50 batik holograms.
 
 ## Controls
 
