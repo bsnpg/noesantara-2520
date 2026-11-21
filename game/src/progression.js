@@ -1,1 +1,61 @@
-const SAVE_KEY='noesantara2520.save';export function initProgression(G){const P={credits:0,xp:0,level:1,xpNeed:400,wanted:0,garage:{engine:0,armor:0},ownedWeapons:[0],properties:{safehouse:true,shops:0},checkpointPhase:0,dayIncome:0,_lastDay:1,addCredits(n){P.credits+=n;if(G)G.credits=P.credits;},addXp(n){P.xp+=n;while(P.xp>=P.xpNeed&&P.level<50){P.xp-=P.xpNeed;P.level+=1;P.xpNeed=Math.round(P.xpNeed*1.25);if(G.hud)G.hud.toast('LEVEL UP! Level '+P.level+' — gear baru terbuka','reward');if(G.audio)G.audio.chime();}if(G){G.xp=P.xp;G.level=P.level;}},addWanted(n){if(G.police)G.police.addHeat(n*20);P.wanted=(G.wanted&&G.wanted.stars)||0;if(G.hud)G.hud.setWanted(P.wanted);if(P.wanted>=3&&G.audio)G.audio.siren();},clearWanted(){if(G.police)G.police.clear();P.wanted=0;if(G.hud)G.hud.setWanted(0);},checkpoint(){P.checkpointPhase=G.missions&&G.missions.active?G.missions.active.phase:0;P.autosave();},autosave(){P.saveGame(true);},saveGame(silent){try{window.localStorage.setItem(SAVE_KEY,JSON.stringify({credits:P.credits,xp:P.xp,level:P.level,garage:P.garage,ownedWeapons:P.ownedWeapons,shops:P.properties.shops,day:G.day||1,time:G.timeOfDay||10.5}));if(!silent&&G.hud)G.hud.toast('Game tersimpan 💾','sub');}catch(e){}},loadGame(){try{const s=JSON.parse(window.localStorage.getItem(SAVE_KEY)||'null');if(!s)return false;Object.assign(P,{credits:s.credits||0,xp:s.xp||0,level:s.level||1,garage:s.garage||P.garage,ownedWeapons:s.ownedWeapons||[0]});P.properties.shops=s.shops||0;if(G){G.day=s.day||1;G.timeOfDay=s.time||10.5;G.credits=P.credits;G.xp=P.xp;G.level=P.level;}return true;}catch(e){return false;}},onDeath(){const loss=Math.floor(P.credits*0.1);P.credits-=loss;P.clearWanted();if(G.player){G.player.hp=100;G.player.health=100;if(G.player.pos){G.player.pos.x=-190;G.player.pos.z=-120;}}if(G.missions&&G.missions.active)G.missions.active.phase=P.checkpointPhase;if(G.hud)G.hud.toast('Kamu tumbang — respawn di safehouse, -Rp '+loss.toLocaleString('id-ID'),'bad');P.autosave();},onBusted(){const fine=Math.floor(P.credits*0.1);P.credits-=fine;P.clearWanted();if(G.hud)G.hud.toast('BUSTED! Denda Rp '+fine.toLocaleString('id-ID'),'bad');},update(dt){const day=G.day||1;if(day!==P._lastDay){P._lastDay=day;const wolves=G.missions?G.missions.list.filter(m=>m.done).length:0;const income=P.properties.shops*300+wolves*150;if(income>0){P.addCredits(income);if(G.hud)G.hud.toast('Pemasukan wilayah hari '+day+': +Rp '+income.toLocaleString('id-ID'),'reward');}P.autosave();}if(G.wanted&&typeof G.wanted.stars==='number')P.wanted=G.wanted.stars;if(G){G.credits=P.credits;G.xp=P.xp;G.level=P.level;}},};P.loadGame();G.progression=P;}
+// progression.js — Credits (Rp), XP/level, save, district progress, explored cells.
+import { DISTRICTS } from './config.js';
+
+export function xpNeed(level) { return 250 * level; }
+export function levelFor(totalXp) {
+  let level = 1, cum = 0;
+  while (totalXp >= cum + xpNeed(level)) { cum += xpNeed(level); level += 1; }
+  return { level, inLevel: totalXp - cum, need: xpNeed(level) };
+}
+export function createProgression(ctx) {
+  const p = {
+    money: 0, totalXp: 0, health: 100, armor: 50,
+    hour: 8, day: 1, wanted: 0,
+    batik: 0, questsDone: 0, racesWon: 0, missionsDone: 0, districtsOwned: 0,
+    visited: new Map(), // district id -> Set of "gx,gz" cells (40-unit grid)
+    saveKey: 'noesantara2520.save',
+    level() { return levelFor(p.totalXp).level; },
+    xpInLevel() { return levelFor(p.totalXp).inLevel; },
+    xpNeedNow() { return levelFor(p.totalXp).need; },
+    addMoney(n) { p.money += n; },
+    addXp(n) { p.totalXp += n; },
+    markVisited(x, z) {
+      const d = ctx.districtAt(x, z);
+      if (!d) return;
+      let s = p.visited.get(d.id);
+      if (!s) { s = new Set(); p.visited.set(d.id, s); }
+      s.add(Math.floor(x / 40) + ',' + Math.floor(z / 40));
+    },
+    seenPct(d) {
+      const s = p.visited.get(d.id);
+      return s ? Math.min(100, Math.round((s.size / d.cells) * 100)) : 0;
+    },
+    // District progress: batik weight + exploration weight (tuned so the staged
+    // 15-batik / 2-quest state reads 9/6/9/0/6/5/8, total 6%).
+    districtProgress(d) {
+      const batikIn = ctx.quests.batikInDistrict(d.id);
+      return Math.round(batikIn * 2.12 + p.seenPct(d) * 0.05);
+    },
+    completion() {
+      const vals = DISTRICTS.map((d) => p.districtProgress(d));
+      return Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    },
+    exploredPct() { return Math.round((p.batik / 50) * 100); },
+    save() {
+      try {
+        window.localStorage.setItem(p.saveKey, JSON.stringify({
+          money: p.money, totalXp: p.totalXp, health: p.health, armor: p.armor,
+          hour: p.hour, day: p.day, batik: p.batik, questsDone: p.questsDone,
+        }));
+      } catch { /* storage off: session-only */ }
+    },
+    load() {
+      try {
+        const s = JSON.parse(window.localStorage.getItem(p.saveKey) || 'null');
+        if (!s) return;
+        Object.assign(p, s);
+      } catch { /* corrupt save: start fresh */ }
+    },
+  };
+  return p;
+}

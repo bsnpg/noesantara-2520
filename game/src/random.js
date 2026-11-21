@@ -1,1 +1,13 @@
-export function makeRng(seed){let s=(seed>>>0)||1;return()=>{s|=0;s=(s+0x6d2b79f5)|0;let t=Math.imul(s^(s>>>15),1|s);t=(t+Math.imul(t^(t>>>7),61|t))^t;return((t^(t>>>14))>>>0)/4294967296;};}export const createRandom=makeRng;export const range=(rng,lo,hi)=>lo+rng()*(hi-lo);export const int=(rng,lo,hi)=>Math.floor(range(rng,lo,hi+1));export const pick=(rng,arr)=>arr[Math.floor(rng()*arr.length)];export const chance=(rng,p)=>rng()<p;
+// Seeded RNG (mulberry32) — deterministic city layout per seed.
+export function makeRng(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+export function range(rng, lo, hi) { return lo + rng() * (hi - lo); }
+export function pick(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+export function int(rng, lo, hi) { return Math.floor(range(rng, lo, hi + 1)); }

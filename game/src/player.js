@@ -1,1 +1,81 @@
-import*as A from'./assets3d.js';export function initPlayer(G){const T=G.THREE;const g=A.makeWowo();const cx=(G.car&&G.car.group)?G.car.group.position.x:-190;const cz=(G.car&&G.car.group)?G.car.group.position.z:-120;g.position.set(cx+2.5,0,cz+2);if(G.scene)G.scene.add(g);const P={group:g,hp:100,maxHp:100,armor:50,maxArmor:100,pos:g.position,onFoot:true,yaw:0,speed:0,velY:0,grounded:true,sprint:false,walkPhase:0,};P.health=P.hp;P.weapon=5;P.inCar=false;G.player=P;G._prevKeys=G._prevKeys||{};const pressed=(c)=>(G.pressed?G.pressed.has(c):G.keys[c]&&!G._prevKeys[c]);const prompt=(txt)=>{if(!G.hud)return;if(typeof G.hud.showPrompt==='function')G.hud.showPrompt(txt);else G.hud.prompt=txt||'';};G.updatePlayer=(dt)=>{const k=G.keys||{};if(!P.onFoot||G.state==='title'){if(P.onFoot)prompt('');return;}const fpsAim=G.weaponIndex!==undefined&&G.weaponIndex!==null&&G.weaponIndex!==5;if(!fpsAim&&G.mouse&&typeof G.mouse.dx==='number'){P.yaw-=G.mouse.dx*0.0032;G.mouse.dx=0;}const fwd={x:-Math.sin(P.yaw),z:-Math.cos(P.yaw)};const rgt={x:Math.cos(P.yaw),z:-Math.sin(P.yaw)};let mx=0,mz=0;if(k.KeyW||k.ArrowUp){mx+=fwd.x;mz+=fwd.z;}if(k.KeyS||k.ArrowDown){mx-=fwd.x;mz-=fwd.z;}if(k.KeyA||k.ArrowLeft){mx-=rgt.x;mz-=rgt.z;}if(k.KeyD||k.ArrowRight){mx+=rgt.x;mz+=rgt.z;}const ml=Math.hypot(mx,mz)||1;P.sprint=!!(k.ShiftLeft||k.ShiftRight);const spd=P.sprint?8:4.5;P.speed=(mx||mz)?spd:0;g.position.x+=(mx/ml)*P.speed*dt;g.position.z+=(mz/ml)*P.speed*dt;if(mx||mz)g.rotation.y=Math.atan2(mx,mz)+Math.PI;if(pressed('Space')&&P.grounded){P.velY=7.5;P.grounded=false;}if(!P.grounded){P.velY-=22*dt;g.position.y+=P.velY*dt;if(g.position.y<=0){g.position.y=0;P.velY=0;P.grounded=true;}}P.walkPhase+=P.speed*dt*2.2;if(P.grounded)g.position.y=Math.abs(Math.sin(P.walkPhase))*0.06;g.rotation.x=P.speed?0.06:0;const R=G.worldRadius||420;const rr=Math.hypot(g.position.x,g.position.z);if(rr>R){g.position.x*=R/rr;g.position.z*=R/rr;}const car=G.car;const nearCar=car&&car.group&&Math.hypot(g.position.x-car.group.position.x,g.position.z-car.group.position.z)<4;if(nearCar){prompt('E — Masuk Mobil');if(pressed('KeyE')&&(G.time-(G._eToggleT||-9))>0.5){G._eToggleT=G.time;P.onFoot=false;g.visible=false;car.active=true;car.heading=P.yaw;car.group.rotation.y=P.yaw;car.speed=0;prompt('');}}else prompt('');if(pressed('KeyF')&&Array.isArray(G.interactables)){let best=null,bd=2.5;for(const it of G.interactables){const p=it.group?it.group.position:it.position;if(!p)continue;const d=Math.hypot(g.position.x-p.x,g.position.z-p.z);if(d<bd){bd=d;best=it;}}if(best&&typeof best.onInteract==='function')best.onInteract(G);}const fps=fpsAim;g.visible=fps?false:P.onFoot;if(G.camera){const hy=1.6,dist=fps?0:5.2;const cx2=g.position.x-fwd.x*dist,cz2=g.position.z-fwd.z*dist;const cy=hy+(fps?0.05:1.6);if(fps)G.camera.position.set(g.position.x,hy,g.position.z);else{G.camera.position.x+=(cx2-G.camera.position.x)*Math.min(1,dt*8);G.camera.position.y+=(cy-G.camera.position.y)*Math.min(1,dt*8);G.camera.position.z+=(cz2-G.camera.position.z)*Math.min(1,dt*8);}G.camera.lookAt(g.position.x+fwd.x*4,hy,g.position.z+fwd.z*4);if(G.mouse&&typeof G.mouse.dy==='number')G.mouse.dy=0;}if(G.hud){if(typeof G.hud.setHealth==='function')G.hud.setHealth(P.hp,P.armor);else{G.hud.hp=P.hp;G.hud.armor=P.armor;}}};return P;}
+// player.js — Wowo on foot: walk, enter/exit the Garuda GT, POV switching.
+// Fists → third person (Wowo visible); firearms → FPS (viewmodel only).
+import * as A from './assets3d.js';
+import { WEAPONS } from './config.js';
+
+export function createPlayer(ctx) {
+  const { scene } = ctx;
+  const mesh = A.makeWowo();
+  mesh.position.set(-208, 0, -178);
+  scene.add(mesh);
+  const p = {
+    mesh, inCar: true, yaw: 0, pitch: 0, walkSpeed: 9,
+    x: -208, z: -178,
+    weaponIndex: 4, // Rifle by default (matches the sealed FPS shots)
+    weapon() { return WEAPONS[p.weaponIndex]; },
+    isFps() { return !p.inCar && p.weaponIndex !== 0; },
+    enterCar() {
+      p.inCar = true; mesh.visible = false;
+      ctx.combat.viewmodel.visible = false;
+    },
+    exitCar() {
+      p.inCar = false;
+      const car = ctx.vehicles.hero;
+      p.x = car.position.x - 4; p.z = car.position.z + 4;
+      mesh.position.set(p.x, 0, p.z);
+      mesh.visible = true;
+      ctx.combat.syncViewmodel();
+    },
+    update(dt) {
+      const input = ctx.input;
+      if (p.inCar) return;
+      // Mouse-look (yaw/pitch) when pointer is down-dragged or moved.
+      p.yaw -= input.mouseDX * 0.0032;
+      p.pitch = Math.max(-0.9, Math.min(0.9, p.pitch - input.mouseDY * 0.0028));
+      let fx = 0, fz = 0;
+      if (input.isDown('KeyW') || input.isDown('ArrowUp')) { fx += Math.cos(p.yaw); fz += -Math.sin(p.yaw); }
+      if (input.isDown('KeyS') || input.isDown('ArrowDown')) { fx -= Math.cos(p.yaw); fz += Math.sin(p.yaw); }
+      if (input.isDown('KeyA') || input.isDown('ArrowLeft')) { fx -= Math.sin(p.yaw); fz -= Math.cos(p.yaw); }
+      if (input.isDown('KeyD') || input.isDown('ArrowRight')) { fx += Math.sin(p.yaw); fz += Math.cos(p.yaw); }
+      const len = Math.hypot(fx, fz);
+      if (len > 0) {
+        p.x += (fx / len) * p.walkSpeed * dt;
+        p.z += (fz / len) * p.walkSpeed * dt;
+        p.x = Math.max(-330, Math.min(330, p.x));
+        p.z = Math.max(-310, Math.min(310, p.z));
+        mesh.rotation.y = Math.atan2(-fz, fx);
+        mesh.position.set(p.x, Math.abs(Math.sin(ctx.time * 8)) * 0.06, p.z);
+      }
+      ctx.progression.markVisited(p.x, p.z);
+      ctx.quests.collectNearest(p.x, p.z);
+      // Enter car prompt when close to the Garuda GT.
+      const car = ctx.vehicles.hero;
+      const d = Math.hypot(car.position.x - p.x, car.position.z - p.z);
+      ctx.hud.prompt = d < 6 ? 'E — Masuk Mobil' : '';
+      if (input.wasPressed('KeyE') && d < 6) p.enterCar();
+    },
+    camera(dt) {
+      const cam = ctx.render.camera;
+      // In FPS the camera sits inside Wowo's head — hide his body, only the
+      // viewmodel shows. In third person (Fists) he stays visible.
+      mesh.visible = !p.inCar && !p.isFps();
+      const eyeY = 1.7;
+      if (p.isFps()) {
+        cam.position.set(p.x, eyeY, p.z);
+        const lx = p.x + Math.cos(p.yaw) * Math.cos(p.pitch);
+        const ly = eyeY + Math.sin(p.pitch);
+        const lz = p.z - Math.sin(p.yaw) * Math.cos(p.pitch);
+        cam.lookAt(lx, ly, lz);
+        cam.rotation.z = 0;
+      } else {
+        // Third person: behind Wowo, Wowo visible.
+        const bx = p.x - Math.cos(p.yaw) * 6, bz = p.z + Math.sin(p.yaw) * 6;
+        cam.position.x += (bx - cam.position.x) * Math.min(1, 8 * dt);
+        cam.position.y += (3.4 - cam.position.y) * Math.min(1, 8 * dt);
+        cam.position.z += (bz - cam.position.z) * Math.min(1, 8 * dt);
+        cam.lookAt(p.x + Math.cos(p.yaw) * 8, 1.4, p.z - Math.sin(p.yaw) * 8);
+      }
+    },
+  };
+  return p;
+}

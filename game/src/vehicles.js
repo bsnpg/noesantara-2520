@@ -1,1 +1,21 @@
-import*as A from'./assets3d.js';function wrap(T,inner,kind,topSpeed,integrity){const g=new T.Group();inner.rotation.y=Math.PI/2;g.add(inner);g.userData={kind,speed:0,integrity,topSpeed};return g;}const FACTORIES={garuda:(T)=>wrap(T,A.makeGarudaGT(),'garuda',55,100),komodo:(T)=>wrap(T,A.makeKomodoR(),'komodo',52,140),viper:(T)=>wrap(T,A.makeViper(),'viper',50,80),npd:(T)=>wrap(T,A.makeNPDInterceptor(),'npd',53,90),capung:(T)=>{const c=wrap(T,A.makeCapungBike(),'capung',48,40);c.scale.setScalar(0.7);return c;},gajah:(T)=>wrap(T,A.makeGajahTruck(),'gajah',28,500),civilian:(T,color)=>wrap(T,A.makeHoverCar({color:color||0xcccccc}),'civilian',32,60),taxi:(T)=>wrap(T,A.makeTaxi(),'taxi',32,60),angkot:(T)=>wrap(T,A.makeAngkot(),'angkot',32,60),};export function initVehicles(G){const T=G.THREE;G.vehicles={};for(const[k,f]of Object.entries(FACTORIES))G.vehicles[k]=(...a)=>f(T,...a);G._vehAnims=G._vehAnims||[];G.spawnVehicle=(kind,x=0,z=0,heading=0,color)=>{const f=FACTORIES[kind];if(!f||!G.scene)return null;const grp=color!==undefined&&kind==='civilian'?f(T,color):f(T);grp.position.set(x,0,z);grp.rotation.y=heading;G.scene.add(grp);G._vehAnims.push({grp,phase:(G.rng?G.rng():Math.random())*6.28,hover:kind!=='gajah'});if((kind==='civilian'||kind==='taxi'||kind==='angkot')&&Array.isArray(G.traffic))G.traffic.push({group:grp,mesh:grp,kind,speed:8+(G.rng?G.rng()*6:3)});return grp;};G.updateVehicles=(dt)=>{const t=G.time||0;for(const v of G._vehAnims){if(!v.grp||!v.grp.parent)continue;if(v.hover)v.grp.position.y=0.55+Math.sin(t*2.2+v.phase)*0.05;const u=v.grp.userData;if(u.strobes)u.strobes.forEach((s,i)=>{s.material.emissiveIntensity=(Math.sin(t*10+i*Math.PI)>0?2.5:0.15);});}};return G.vehicles;}
+// vehicles.js — vehicle factory: hero Garuda GT, Razor's Komodo R, enemy/NPD cars.
+import * as A from './assets3d.js';
+
+export function createVehicles(ctx) {
+  const { scene } = ctx;
+  const hero = A.makeGarudaGT();
+  hero.position.set(-215, 0, -185);
+  hero.rotation.y = 0; // facing east (+x) along Jl. Raya Utara
+  scene.add(hero);
+  const komodo = A.makeKomodoR();
+  komodo.position.set(-180, 0, -185); komodo.rotation.y = 0;
+  scene.add(komodo);
+  return {
+    hero, komodo,
+    spawn(kind, x, z, heading) {
+      const g = kind === 'komodo' ? A.makeKomodoR() : kind === 'npd' ? A.makeNpdCar() : kind === 'truck' ? A.makeTruck() : A.makeViperCar();
+      g.position.set(x, 0, z); g.rotation.y = heading; scene.add(g);
+      return g;
+    },
+  };
+}

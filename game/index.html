@@ -1,46 +1,221 @@
 <!doctype html>
-<html lang="en">
+<html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Noesantara 2520 — 8 Jobs to Own the Streets</title>
 <link rel="icon" href="data:,">
+<title>Noesantara 2520 — 8 Jobs to Own the Streets</title>
 <style>
-  html,body{margin:0;height:100%;overflow:hidden;background:#0d1420;font-family:system-ui,"Segoe UI",Arial,sans-serif}
-  #game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none}
-  .layer{position:fixed;inset:0;pointer-events:none}
-  #hud{z-index:5;color:#ffe9a8}
-  #map,#wheel,#title{z-index:10;display:flex;align-items:center;justify-content:center}
-  #map{background:rgba(6,12,20,.92)}
-  #wheel{background:rgba(6,12,20,.25)}
-  #title{background:radial-gradient(ellipse at center,rgba(6,12,20,0.04) 0%,rgba(6,12,20,0.34) 78%,rgba(6,12,20,0.55) 100%);color:#ffe9a8;text-align:center;pointer-events:auto}
-  #title>div{background:rgba(8,14,22,0.66);padding:26px 46px 30px;border:1px solid rgba(245,197,66,0.45);border-radius:14px;box-shadow:0 10px 44px rgba(0,0,0,0.55)}
-  #title h2{text-shadow:0 1px 8px rgba(0,0,0,0.9)}
-  #title p{text-shadow:0 1px 6px rgba(0,0,0,0.9)}
-  #title h1{font-size:52px;margin:0;color:#f5c542;text-shadow:0 0 24px #b8860b}
-  #title h2{font-size:20px;color:#2ec4b6;margin:8px 0 24px}
-  #title p{color:#cfd8dc;font-size:14px;line-height:1.7}
-  #title button{pointer-events:auto;margin-top:18px;padding:12px 42px;font-size:18px;background:#f5c542;color:#1a1206;border:2px solid #2ec4b6;border-radius:6px;cursor:pointer}
-  .hidden{display:none!important}
-  #status{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #0a1a20; font-family: system-ui, sans-serif; }
+  #game { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #status { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .card { background: rgba(10, 30, 36, 0.88); border: 2px solid #c9a227; border-radius: 10px; color: #eef6f8; box-shadow: 0 2px 14px rgba(0,0,0,0.45); }
+  .gold { color: #ffd700; }
+  #hud { position: fixed; inset: 0; pointer-events: none; display: none; z-index: 5; }
+  #mission-card { position: absolute; top: 12px; left: 12px; width: 300px; padding: 10px 14px; }
+  #mission-code { font-size: 12px; letter-spacing: 1px; color: #9fd8c8; }
+  #mission-stage { float: right; border: 1px solid #ffd700; border-radius: 6px; padding: 1px 7px; font-size: 11px; color: #ffd700; }
+  #mission-name { font-size: 24px; font-weight: 800; color: #ffd700; line-height: 1.05; margin-top: 2px; }
+  #mission-obj { font-size: 14px; margin-top: 2px; }
+  #mission-target { font-size: 15px; font-weight: 700; margin-top: 2px; }
+  #mission-next { font-size: 12px; color: #9fd8c8; margin-top: 2px; }
+  #finish-panel { position: absolute; top: 172px; left: 12px; width: 300px; padding: 10px 14px; }
+  #finish-panel h3 { margin: 0 0 6px; color: #ffd700; font-size: 16px; }
+  #standings-list div { font-size: 13px; padding: 2px 0; }
+  #standings-list .first { color: #ffd700; font-weight: 700; }
+  #winner-banner { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); width: 430px; text-align: center; padding: 8px 10px; border-width: 3px; }
+  #winner-banner .trophy { font-size: 30px; }
+  #winner-banner .big { font-size: 44px; font-weight: 900; color: #ffd700; letter-spacing: 2px; line-height: 1; }
+  #winner-banner .sub { font-size: 17px; font-weight: 700; }
+  #winner-banner .pos { font-size: 13px; letter-spacing: 3px; color: #9fd8c8; }
+  #status-cluster { position: absolute; top: 12px; right: 12px; width: 250px; padding: 10px 14px; text-align: left; }
+  #money { font-size: 30px; font-weight: 900; color: #ffd700; line-height: 1; }
+  #wanted { font-size: 18px; letter-spacing: 2px; }
+  #wanted span { color: #ffd700; }
+  #wanted span.off { color: #4a5a60; }
+  #wanted-label { color: #4ade80; font-weight: 700; font-size: 13px; }
+  #clock { font-size: 13px; color: #cfe8ff; margin-top: 2px; }
+  .bar-row { font-size: 11px; font-weight: 700; margin-top: 6px; display: flex; justify-content: space-between; }
+  .bar-row .lbl { color: #4ade80; } .bar-row .lbl.a { color: #38bdf8; } .bar-row .lbl.x { color: #ffd700; }
+  .bar { height: 8px; background: #16242b; border-radius: 4px; overflow: hidden; margin-top: 2px; }
+  .bar i { display: block; height: 100%; background: #4ade80; }
+  #armor-fill { background: #38bdf8; } #xp-fill { background: #ffd700; }
+  #toast { position: absolute; top: 150px; left: 50%; transform: translateX(-50%); padding: 8px 18px; font-weight: 700; display: none; }
+  #boss-bar { position: absolute; top: 210px; left: 50%; transform: translateX(-50%); width: 420px; padding: 6px 12px; display: none; text-align: center; }
+  #boss-bar .boss-name { color: #ff6b6b; font-weight: 800; font-size: 14px; }
+  #boss-bar .bar i { background: #ff2222; }
+  #truck-bar { position: absolute; top: 250px; left: 50%; transform: translateX(-50%); width: 300px; padding: 6px 12px; display: none; }
+  #truck-bar .bar i { background: #ffd700; }
+  #npd-panel { position: absolute; top: 240px; right: 12px; width: 250px; padding: 8px 12px; display: none; font-size: 13px; }
+  #npd-panel h4 { margin: 0 0 4px; color: #ff6b6b; }
+  #crosshair { position: absolute; left: 50%; top: 50%; width: 26px; height: 26px; margin: -13px 0 0 -13px; border: 3px solid #ffd700; border-radius: 50%; box-shadow: 0 0 8px #ffd700, inset 0 0 0 2px rgba(0,0,0,0.6); display: none; }
+  #crosshair::after { content: ''; position: absolute; left: 50%; top: 50%; width: 4px; height: 4px; margin: -2px 0 0 -2px; background: #ffd700; border-radius: 50%; }
+  #prompt { position: absolute; left: 50%; top: 56%; transform: translateX(-50%); padding: 6px 14px; font-weight: 700; display: none; }
+  #district-box { position: absolute; left: 12px; bottom: 12px; }
+  #district-name { padding: 7px 12px; font-weight: 800; font-size: 14px; }
+  #district-name span { color: #9fd8c8; font-weight: 600; }
+  #minimap-wrap { margin-top: 8px; padding: 6px; width: 162px; }
+  #minimap { display: block; border-radius: 4px; }
+  #dialog { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: 480px; padding: 10px 14px; display: flex; gap: 12px; align-items: center; }
+  #dialog-avatar { width: 46px; height: 46px; border-radius: 50%; border: 2px solid #ffd700; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 900; color: #ffd700; flex: none; }
+  #dialog-name { color: #ffd700; font-weight: 700; font-size: 14px; }
+  #dialog-line { font-size: 14px; }
+  #br-cluster { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  #mini-wheel { display: block; }
+  #weapon-strip { display: flex; gap: 4px; }
+  .wslot { background: rgba(10,30,36,0.85); border: 1px solid #4a5a60; border-radius: 6px; padding: 3px 7px; font-size: 10px; text-align: center; color: #cfe8ff; }
+  .wslot.sel { border-color: #ffd700; color: #ffd700; }
+  .wslot b { display: block; font-size: 11px; }
+  #speedo { width: 300px; padding: 10px 14px; text-align: right; }
+  #speed { font-size: 52px; font-weight: 900; color: #ffd700; line-height: 0.9; }
+  #speed small { font-size: 16px; color: #cfe8ff; }
+  #boost-label, #integrity-label { font-size: 12px; color: #cfe8ff; }
+  #radio { font-size: 12px; color: #9fd8c8; margin-top: 4px; }
+  #onfoot-card { width: 300px; padding: 10px 14px; text-align: right; }
+  #onfoot-weapon { font-size: 26px; font-weight: 900; color: #ffd700; }
+  #onfoot-weapon span { font-size: 18px; }
+  #onfoot-card .hint { font-size: 12px; color: #9fd8c8; }
+  #bars { position: fixed; inset: 0; pointer-events: none; z-index: 4; overflow: hidden; }
+  .bar-tag { position: absolute; width: 52px; text-align: center; font-size: 10px; font-weight: 700; }
+  .bar-tag span { display: block; text-shadow: 0 1px 2px #000; }
+  .bar-tag.enemy span { color: #ff6b6b; } .bar-tag.ally span { color: #4ade80; }
+  .bar-tag i { display: block; height: 5px; background: rgba(0,0,0,0.6); border-radius: 3px; overflow: hidden; }
+  .bar-tag i b { display: block; height: 100%; }
+  .bar-tag.enemy i b { background: #ff2222; } .bar-tag.ally i b { background: #22c55e; }
+  #wheel { position: fixed; left: 50%; top: 50%; width: 520px; height: 520px; margin: -260px 0 0 -260px; z-index: 8; display: none; pointer-events: none; }
+  /* Title screen */
+  #title-screen { position: fixed; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; background: linear-gradient(90deg, rgba(6,20,26,0.82) 0%, rgba(6,20,26,0.45) 55%, rgba(6,20,26,0.15) 100%); }
+  #title-card { max-width: 560px; padding: 28px 32px; margin-right: 320px; }
+  #title-card h1 { margin: 0; font-size: 52px; line-height: 0.95; color: #ffd700; letter-spacing: 1px; }
+  #title-card h1 span { color: #1abc9c; }
+  #title-card .tag { color: #ff4fa3; font-weight: 800; letter-spacing: 3px; font-size: 14px; margin-top: 6px; }
+  #title-card p { font-size: 15px; line-height: 1.5; color: #dceef2; }
+  #title-card .controls { font-size: 13px; color: #9fd8c8; line-height: 1.7; }
+  #btn-start { pointer-events: auto; cursor: pointer; margin-top: 16px; background: linear-gradient(180deg, #ffd700, #e0a800); color: #1a1400; border: none; border-radius: 10px; font-size: 22px; font-weight: 900; letter-spacing: 2px; padding: 14px 44px; }
+  #btn-start:hover { filter: brightness(1.1); }
+  /* Pause / map screen */
+  #map-screen { position: fixed; inset: 0; z-index: 15; display: none; background: rgba(4, 16, 20, 0.97); color: #eef6f8; }
+  #map-top { display: flex; align-items: center; gap: 18px; padding: 8px 20px; border-bottom: 2px solid #c9a227; }
+  #map-top h2 { margin: 0; font-size: 24px; color: #ffd700; letter-spacing: 2px; }
+  #map-top .stats { color: #ffd700; font-weight: 700; }
+  #map-top .lv { margin-left: auto; border: 2px solid #ffd700; border-radius: 8px; padding: 3px 12px; font-weight: 900; color: #ffd700; }
+  #map-cols { display: flex; gap: 12px; padding: 8px 16px; height: calc(100% - 122px); }
+  .map-col { padding: 8px 12px; overflow-y: auto; }
+  #map-left { width: 250px; flex: none; } #map-right { width: 280px; flex: none; }
+  #map-mid { flex: 1; display: flex; flex-direction: column; align-items: center; }
+  #map-mid canvas { background: #0e2a33; border-radius: 8px; max-width: 100%; height: 470px; width: auto; }
+  .map-col h3 { margin: 0 0 4px; color: #ffd700; font-size: 13px; letter-spacing: 1px; }
+  .mission-row { font-size: 12px; padding: 4px 0; border-bottom: 1px solid #1e3a44; line-height: 1.3; }
+  .mission-row b { color: #ffd700; } .mission-row .st { color: #9fd8c8; font-size: 11px; }
+  .prog-row { font-size: 12px; padding: 2px 0; line-height: 1.25; }
+  #map-hint { margin-top: 8px; padding: 6px 12px; font-size: 13px; text-align: center; }
+  #map-btns { display: flex; gap: 14px; justify-content: center; padding: 8px; }
+  #map-btns button { cursor: pointer; pointer-events: auto; font-size: 16px; font-weight: 800; border-radius: 10px; padding: 8px 26px; border: 2px solid; }
+  #btn-resume { background: #1abc9c; color: #06231d; border-color: #1abc9c; }
+  #btn-settings { background: #ffd700; color: #1a1400; border-color: #ffd700; }
+  #btn-exit { background: #c0392b; color: #fff; border-color: #c0392b; }
 </style>
 </head>
 <body>
-<canvas id="game" aria-label="Noesantara 2520: open-world action in the city of Noesantara"></canvas>
-<div id="hud" class="layer"></div>
-<div id="map" class="layer hidden"></div>
-<div id="wheel" class="layer hidden"></div>
-<div id="title" class="layer">
-  <div>
-    <h1>NOESANTARA 2520</h1>
-    <h2>8 Jobs to Own the Streets</h2>
-    <p>Wowo "Ghost" — ex-NPD pilot framed by the Syndicate for the Spire vault-code theft.<br>The Neon Wolves took him in. Eight jobs to clear his name — and take the city back.</p>
-    <p>WASD drive / move &nbsp;·&nbsp; E enter car &nbsp;·&nbsp; Q hold weapon wheel<br>
-    M map &nbsp;·&nbsp; P photo mode &nbsp;·&nbsp; Esc pause &nbsp;·&nbsp; Shift boost</p>
-    <button id="startBtn">MULAI — START ENGINE</button>
+<canvas id="game" aria-label="Noesantara 2520: open-world crime game"></canvas>
+<p id="status" role="status" aria-live="polite"></p>
+<div id="bars"></div>
+<div id="hud">
+  <div id="mission-card" class="card">
+    <div><span id="mission-code">MISI 1/8 · DISTRIK NEON</span><span id="mission-stage">STAGE 1/4</span></div>
+    <div id="mission-name">Balapan Pertama</div>
+    <div id="mission-obj">Lap 1 — kejar garis start</div>
+    <div id="mission-target">LAP 1/3</div>
+    <div id="mission-next">BERIKUTNYA: Lap 2 — potong di Pasar</div>
+  </div>
+  <div id="finish-panel" class="card" style="display:none">
+    <h3>🏁 FINISH — KLASEMEN</h3>
+    <div id="standings-list"></div>
+  </div>
+  <div id="winner-banner" class="card" style="display:none">
+    <div class="trophy">🏆</div>
+    <div class="big">WINNER</div>
+    <div class="sub">WOWO "GHOST" · Garuda GT</div>
+    <div class="pos">1st · FINISH</div>
+  </div>
+  <div id="status-cluster" class="card">
+    <div id="money">Rp 0</div>
+    <div><span id="wanted"><span>★</span><span>★</span><span>★</span><span>★</span><span>★</span></span> <span id="wanted-label">AMAN</span></div>
+    <div id="clock">08:00 · Morning 🌅 · DAY 1</div>
+    <div class="bar-row"><span class="lbl">HEALTH</span><span id="health-num">100%</span></div>
+    <div class="bar"><i id="health-fill" style="width:100%"></i></div>
+    <div class="bar-row"><span class="lbl a">ARMOR</span><span id="armor-num">50%</span></div>
+    <div class="bar"><i id="armor-fill" style="width:50%"></i></div>
+    <div class="bar-row"><span class="lbl x" id="level-label">LV.1</span><span id="xp-num">XP 0/250</span></div>
+    <div class="bar"><i id="xp-fill" style="width:0%"></i></div>
+  </div>
+  <div id="toast" class="card"></div>
+  <div id="boss-bar" class="card"><div class="boss-name">RAZOR — BOSS | LV 20</div><div class="bar"><i id="boss-fill" style="width:100%;background:#ff2222"></i></div></div>
+  <div id="truck-bar" class="card"><div style="font-size:12px;font-weight:700">TRUK GAJAH</div><div class="bar"><i id="truck-fill" style="width:100%;background:#ffd700"></i></div></div>
+  <div id="npd-panel" class="card"><h4 id="npd-count">NPD ×0</h4><div id="npd-list"></div></div>
+  <div id="crosshair"></div>
+  <div id="prompt" class="card">E — Masuk Mobil</div>
+  <div id="district-box">
+    <div id="district-name" class="card">DISTRIK NEON · <span>Wilayah Wolves</span></div>
+    <div id="minimap-wrap" class="card"><canvas id="minimap" width="150" height="150"></canvas></div>
+  </div>
+  <div id="dialog" class="card">
+    <div id="dialog-avatar">M</div>
+    <div><div id="dialog-name">Mara · Navigator Wolves</div><div id="dialog-line">Gas, Ghost! Menang di sini, nama kita bersih lagi.</div></div>
+  </div>
+  <div id="br-cluster">
+    <canvas id="mini-wheel" width="150" height="150"></canvas>
+    <div id="weapon-strip"></div>
+    <div id="speedo" class="card">
+      <div><span id="speed">0</span> <small>km/h</small></div>
+      <div id="boost-label">BOOST 100% · LOWER LANE</div>
+      <div class="bar"><i id="boost-fill" style="width:100%;background:#1abc9c"></i></div>
+      <div id="integrity-label">GARUDA GT 100%</div>
+      <div class="bar"><i id="integrity-fill" style="width:100%;background:#ffd700"></i></div>
+      <div id="radio">♪ Radio Nusantara 98.6 — Gamelan Elektro</div>
+      <div id="vehicle-name" style="display:none">GARUDA GT</div>
+    </div>
+    <div id="onfoot-card" class="card" style="display:none">
+      <div id="onfoot-weapon">RIFLE <span>30 / 150</span></div>
+      <div class="hint">ON FOOT — Q / Tab wheel • 1–6 pilih</div>
+    </div>
   </div>
 </div>
-<p id="status" role="status" aria-live="polite"></p>
+<canvas id="wheel" width="520" height="520"></canvas>
+<div id="title-screen">
+  <div id="title-card" class="card">
+    <h1>NOESANTARA<br><span>2520</span></h1>
+    <div class="tag">8 JOBS TO OWN THE STREETS</div>
+    <p>Wowo "Ghost", ex-pilot interceptor NPD, dijebak Syndicate atas pencurian yang tak ia lakukan.
+    Bersama Neon Wolves — Mara, Riko, Kiko — ia merebut kembali kotanya, satu balapan dan satu
+    perang geng demi satu, sampai namanya bersih di semua billboard Noesantara.</p>
+    <div class="controls">W A S D — jalan / nyetir &nbsp;·&nbsp; E — masuk / keluar mobil &nbsp;·&nbsp; Q / Tab — weapon wheel<br>
+    1–6 — pilih senjata &nbsp;·&nbsp; Klik — tembak &nbsp;·&nbsp; M — peta &nbsp;·&nbsp; Esc — jeda &nbsp;·&nbsp; R — photo mode (replay)</div>
+    <button id="btn-start">▶ &nbsp;MULAI</button>
+  </div>
+</div>
+<div id="map-screen">
+  <div id="map-top">
+    <h2>⏸ PAUSED — MAP</h2>
+    <div class="stats" id="map-stats">💰 Rp 0 · SELESAI: 0% · TERJELAJAHI: 0% · 08:00 · DAY 1</div>
+    <div class="lv" id="map-lv">LV.1</div>
+  </div>
+  <div id="map-cols">
+    <div id="map-left" class="map-col card"><h3>MISSIONS — 8</h3><div id="mission-list"></div>
+      <h3 style="margin-top:10px">PENYELESAIAN — <span id="map-completion">0%</span></h3><div id="completion-list"></div></div>
+    <div id="map-mid"><canvas id="bigmap" width="640" height="560"></canvas>
+      <div id="map-hint" class="card">Klik distrik = info • Klik = waypoint • Klik kanan = hapus waypoint • M / Esc = tutup</div></div>
+    <div id="map-right" class="map-col card"><h3>DISTRICT STANDING</h3><div id="standing-list"></div>
+      <h3 style="margin-top:10px">LEGEND</h3><div id="legend" style="font-size:11px;line-height:1.5">
+      ◆ M — Misi &nbsp; ◇ Waypoint<br>━ Avenue &nbsp; ━ Connector — Gang<br>⌂ — Safehouse &nbsp; 🔧 — Garage Riko<br>✦ — Koleksi Batik (50) &nbsp; 🏛 — Spire<br><span style="color:#2563eb">●</span> NPD &nbsp; <span style="color:#ff2222">●</span> Viper &nbsp; <span style="color:#ffd700">▲</span> Kamu<br>┄ Rute misi aktif</div>
+      <h3 style="margin-top:10px">DISTRICT PROGRESS</h3><div id="district-progress"></div></div>
+  </div>
+  <div id="map-btns">
+    <button id="btn-resume">▶ RESUME</button>
+    <button id="btn-settings">⚙ SETTINGS</button>
+    <button id="btn-exit">🚪 EXIT TO MENU</button>
+  </div>
+</div>
 <script type="module" src="./src/main.js"></script>
 </body>
 </html>

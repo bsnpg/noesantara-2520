@@ -1,1 +1,42 @@
-const SIDES=[{id:'paket',name:'Antar Paket',en:'Deliver a package Skyport → Pasar',from:{x:-200,z:-20},to:{x:200,z:-170},reward:{credits:400,xp:150,item:'Kupon Toko'}},{id:'jalanan',name:'Balapan Jalanan',en:'Win 1 street race',reward:{credits:600,xp:200,item:'Ban Balap'}},{id:'selamatkan',name:'Selamatkan Anggota Wolves',en:'Rescue 3 Wolves members',reward:{credits:800,xp:250,item:'Jaket Wolves'}},{id:'foto',name:'Foto Spot',en:'Photograph 5 scenic spots',reward:{credits:500,xp:200,item:'Kamera Holo'}},];const SPOTS=[{x:-170,z:-140,n:'Gapura Neon'},{x:230,z:-160,n:'Menara Jam'},{x:0,z:0,n:'Menara Spire'},{x:-200,z:0,n:'Menara Kontrol'},{x:230,z:0,n:'Pohon Raksasa'},];const ALLEY_RUNS=[[-280,-280,280,8],[280,-280,280,8],[50,-100,100,3]];const ALLEY_RUNS_EW=[[-150,-320,-115,4],[-150,115,320,4],[150,-320,-115,4],[150,115,320,4],[-50,-320,-115,3],[50,115,320,3],];const PLAZA_SPOTS=[[150,-235],[170,-215],[190,-235],[45,40],[60,65],[75,40],[-280,-60],[-265,-40],[-295,-45],];export function initQuests(G){const collectibles=[];let id=0;const add=(x,z)=>collectibles.push({id:id++,x:Math.round(x),z:Math.round(z),found:false});for(const[x,a,b,n]of ALLEY_RUNS)for(let k=0;k<n;k++)add(x,a+(b-a)*(k+0.5)/n);for(const[z,a,b,n]of ALLEY_RUNS_EW)for(let k=0;k<n;k++)add(a+(b-a)*(k+0.5)/n,z);for(const[x,z]of PLAZA_SPOTS)add(x,z);const Q={list:SIDES.map(s=>Object.assign({},s,{active:false,done:false,progress:0,goal:s.id==='foto'?5:s.id==='selamatkan'?3:1})),collectibles,found:0,photoSpots:SPOTS.map(s=>Object.assign({},s,{done:false})),start(id){const q=Q.list.find(x=>x.id===id);if(!q||q.done||q.active)return false;if(Q.list.filter(x=>x.active).length>=3){if(G.hud)G.hud.toast('Maks 3 quest aktif — selesaikan satu dulu','bad');return false;}q.active=true;q.progress=0;if(G.hud){G.hud.toast('Quest dimulai: '+q.name,'sub');G.hud.setObjective&&G.hud.setObjective(q.name,q.en);}return true;},bump(id,n){const q=Q.list.find(x=>x.id===id);if(q&&q.active){q.progress+=n||1;if(q.progress>=q.goal)Q.complete(q);}},complete(q){q.active=false;q.done=true;if(G.progression){G.progression.addCredits(q.reward.credits);G.progression.addXp(q.reward.xp);}if(G.hud)G.hud.toast('+'+q.reward.credits+' Credits  •  +'+q.reward.xp+' XP  •  '+q.reward.item,'reward');if(G.audio)G.audio.cheer&&G.audio.cheer();},update(){if(!G.player)return;const pos=G.player.pos||{x:G.player.x||0,z:G.player.z||0};const near=(t,r)=>{const dx=pos.x-t.x,dz=pos.z-t.z;return dx*dx+dz*dz<r*r;};for(const c of collectibles)if(!c.found&&near(c,4)){c.found=true;Q.found+=1;if(G.progression)G.progression.addXp(20);if(G.hud)G.hud.toast('Hologram Batik '+Q.found+'/50  •  +20 XP','sub');if(G.audio)G.audio.chime&&G.audio.chime();if(Q.found===50&&G.hud)G.hud.toast('+2000 Credits  •  Koleksi Batik lengkap!','reward');if(Q.found===50&&G.progression)G.progression.addCredits(2000);}for(const s of Q.photoSpots)if(!s.done&&near(s,8)){s.done=true;Q.bump('foto',1);if(G.hud)G.hud.toast('Foto Spot: '+s.n,'sub');}const pk=Q.list[0];if(pk.active&&!pk.picked&&near(pk.from,10)){pk.picked=true;if(G.hud)G.hud.toast('Paket diambil — antar ke Pasar Nusantara','sub');}else if(pk.active&&pk.picked&&near(pk.to,10))Q.complete(pk);const jr=Q.list[1];if(jr.active&&G.missions&&G.missions.list.some(m=>m.race&&m.done))Q.complete(jr);},};G.quests=Q;}
+// quests.js — 4 side quests + 50 batik hologram collectibles.
+// Rewards flow through the real progression system (money + XP).
+import { SIDE_QUESTS } from './config.js';
+
+export function createQuests(ctx) {
+  const q = {
+    side: SIDE_QUESTS.map((s) => ({ ...s, done: false })),
+    batikFound: 0,
+    batikByDistrict: [0, 0, 0, 0, 0, 0, 0],
+    batikInDistrict(id) { return q.batikByDistrict[id] || 0; },
+    collectBatik(c) {
+      if (!c || c.taken) return false;
+      c.taken = true;
+      if (c.mesh) c.mesh.visible = false;
+      q.batikFound += 1; q.batikByDistrict[c.district] += 1;
+      ctx.progression.batik += 1;
+      ctx.progression.addXp(10);
+      return true;
+    },
+    collectNearest(x, z, maxD = 4) {
+      let best = null, bd = maxD;
+      for (const c of ctx.collectibles) {
+        if (c.taken) continue;
+        const d = Math.hypot(c.x - x, c.z - z);
+        if (d < bd) { bd = d; best = c; }
+      }
+      return best ? q.collectBatik(best) : false;
+    },
+    completeQuest(id) {
+      const s = q.side.find((x) => x.id === id);
+      if (!s || s.done) return false;
+      s.done = true;
+      ctx.progression.questsDone += 1;
+      ctx.progression.addMoney(s.reward);
+      ctx.progression.addXp(s.xp);
+      ctx.hud.toast(`QUEST SELESAI — ${s.name} · +Rp ${s.reward} + ${s.xp} XP`);
+      return true;
+    },
+    doneCount() { return q.side.filter((s) => s.done).length; },
+  };
+  return q;
+}

@@ -1,1 +1,169 @@
-import*as THREE from'../vendor/three.module.min.js';import*as A from'./assets3d.js';export const WEAPONS=[{name:'PISTOL',dmg:25,rate:3,mag:12,reserve:72,range:60,spread:0.012,pellets:1,auto:false},{name:'SMG',dmg:12,rate:9,mag:32,reserve:160,range:45,spread:0.05,pellets:1,auto:true},{name:'SHOTGUN',dmg:9,rate:1.1,mag:6,reserve:30,range:25,spread:0.09,pellets:6,auto:false},{name:'RIFLE',dmg:34,rate:7,mag:30,reserve:150,range:90,spread:0.02,pellets:1,auto:true},{name:'BAZOOKA',dmg:120,rate:0.7,mag:4,reserve:12,range:70,spread:0.005,pellets:1,auto:false,splash:5},{name:'FISTS',dmg:15,rate:2,mag:Infinity,reserve:Infinity,range:2.4,spread:0,pellets:1,auto:false,melee:true},];const GOLD=0xf2c94c,TEAL=0x2ec4b6;const ppos=(G)=>{const p=G.player;if(!p)return new THREE.Vector3();return p.pos||p.group?.position||new THREE.Vector3();};const keyDown=(G,c)=>{const k=G.keys;return k?(typeof k.has==='function'?k.has(c):!!k[c]):false;};const stdBox=(w,h,d,color,x=0,y=0,z=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshStandardMaterial({color,roughness:0.7,metalness:0.25}));m.position.set(x,y,z);return m;};function makeFigure(c,s=1){const g=A.makePed({style:c.style||'street',shirt:c.shirt,pants:c.pants,skin:c.skin});g.add(stdBox(0.07,0.07,0.55,0x222222,0.2,1.05,0.05));g.add(stdBox(0.05,0.16,0.05,0x222222,0.2,0.95,0.2));g.scale.setScalar(s);return g;}const SKINS={viper:{skin:0xc98d64,shirt:0x14141a,pants:0x1e1e26},npd:{skin:0xc98d64,shirt:0xf5f7fa,pants:0x1d4ed8},};const HEROES={Mara:()=>A.makeMara(),Riko:()=>A.makeRiko(),Kiko:()=>A.makeKiko(),RAZOR:()=>A.makeRazor()};export function initCombat(G){const T=G.THREE||THREE;const scene=G.scene,camera=G.camera;G.enemies=G.enemies||[];G.allies=G.allies||[];G.player=G.player||{};if(G.player.hp==null)G.player.hp=100;if(G.player.maxHp==null)G.player.maxHp=100;G.weapon=G.weapon||{index:5,name:'FISTS',ammo:Infinity,mag:Infinity};const W=WEAPONS;let mag=W[G.weapon.index].mag,reserve=W[G.weapon.index].reserve;let cool=0,reloadT=0,firing=false,flashT=0,swingT=0,held=false;const ray=new T.Raycaster(),tracers=[],bars=new Map();let barWrap=document.getElementById('bars');if(!barWrap){barWrap=document.createElement('div');barWrap.id='bars';barWrap.style.cssText='position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:20';document.body.appendChild(barWrap);}let bossBar=document.getElementById('bossbar');if(!bossBar){bossBar=document.createElement('div');bossBar.id='bossbar';bossBar.style.cssText='position:fixed;top:64px;left:50%;transform:translateX(-50%);width:min(520px,60vw);display:none;z-index:21;text-align:center;color:#ff5a5a;font:700 20px system-ui;letter-spacing:2px;text-shadow:0 2px 6px #000';bossBar.innerHTML='RAZOR — BOSS<div style="height:14px;border:2px solid #ff5a5a;background:#1a0505;margin-top:4px"><div id="bossfill" style="height:100%;width:100%;background:#ef4444"></div></div>';document.body.appendChild(bossBar);}const bossFill=document.getElementById('bossfill');function makeBar(ent){const ally=ent.kind==='ally',col=ally?'#4ade80':'#ff6b6b',bg=ally?'#22c55e':'#ef4444';const d=document.createElement('div');d.style.cssText=`position:absolute;left:0;top:0;transform:translate(-50%,-100%);text-align:center;font:700 11px system-ui;color:${col};text-shadow:0 1px 3px #000;white-space:nowrap`;d.innerHTML=`<div>${ent.name}</div><div style="width:56px;height:6px;background:#000a;border:1px solid #fff6;margin:2px auto 0"><div style="height:100%;width:100%;background:${bg}"></div></div>`;barWrap.appendChild(d);bars.set(ent,{el:d,fill:d.querySelector('div div div')});}const vm=new T.Group();const flash=new T.PointLight(0xffc860,0,14);flash.position.set(0.38,-0.24,-0.9);const boxB=(w,h,d,color,x=0,y=0,z=0)=>{const m=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),new THREE.MeshBasicMaterial({color}));m.position.set(x,y,z);return m;};const vmGuns=[];const defs=[[[0.09,0.12,0.34],0x3a3f4a,GOLD,0],[[0.09,0.11,0.5],0x2c313c,TEAL,0],[[0.11,0.13,0.62],0x4a2c1a,GOLD,0],[[0.1,0.13,0.72],GOLD,TEAL,1],[[0.14,0.16,0.85],0x374151,0xc8102e,2],null,];for(let i=0;i<6;i++){const g=new T.Group(),d=defs[i];if(d){g.add(boxB(d[0][0],d[0][1],d[0][2],d[1],0.38,-0.26,-0.55));g.add(boxB(0.03,0.03,0.3,d[2],0.38,-0.19,-0.6));g.add(boxB(0.07,0.16,0.08,d[1],0.38,-0.36,-0.35));if(d[3]===1){g.add(boxB(0.05,0.06,0.22,0x111111,0.38,-0.16,-0.55));g.add(boxB(0.025,0.025,0.3,0x222222,0.38,-0.24,-1.0));g.add(boxB(0.06,0.14,0.1,0x2c313c,0.38,-0.38,-0.45));g.add(boxB(0.05,0.05,0.08,GOLD,0.38,-0.16,-0.75));}if(d[3]===2)g.add(boxB(0.16,0.18,0.2,d[2],0.38,-0.26,-0.95));}g.add(boxB(0.11,0.09,0.22,0xc98d64,0.38,-0.36,-0.32));g.add(boxB(0.11,0.09,0.22,0xc98d64,0.24,-0.33,-0.5));g.add(boxB(0.12,0.03,0.06,GOLD,0.38,-0.36,-0.22));g.visible=false;vm.add(g);vmGuns.push(g);}vm.add(flash);if(camera)camera.add(vm);vm.visible=false;function setViewmodel(i){vmGuns.forEach((g,j)=>{g.visible=j===i;});G.weapon.index=i;G.weapon.name=W[i].name;mag=W[i].mag;reserve=W[i].reserve;G.weapon.mag=mag;G.weapon.ammo=reserve;}setViewmodel(G.weapon.index);function spawn(kind,name,x,z,hp){if(!scene)return null;const ally=kind==='ally';const g=HEROES[name]?HEROES[name]():makeFigure(SKINS[kind]||SKINS.viper,name==='RAZOR'?1.3:1);g.position.set(x,0,z);scene.add(g);const ent={group:g,hp,maxHp:hp,name,kind:ally?'ally':kind,alive:true,shootT:1+Math.random()*2,speed:kind==='razor'?3.2:5};g.traverse((o)=>{o.userData.ent=ent;});(ally?G.allies:G.enemies).push(ent);makeBar(ent);return ent;}function spawnEnemy(kind,x,z){return spawn(kind,kind==='razor'?'RAZOR':kind==='npd'?'NPD':'VIPER',x,z,kind==='razor'?800:kind==='npd'?80:60);}function spawnAlly(name,x,z){return spawn('ally',name,x,z,name==='Riko'?120:100);}function kill(ent){ent.alive=false;ent.group.rotation.x=-Math.PI/2;ent.group.position.y=0.2;const b=bars.get(ent);if(b)b.el.remove();bars.delete(ent);if(ent.kind==='npd'&&G.police)G.police.addHeat(40);if(G.missions){if(ent.kind==='viper')G.missions.bump('vipersDown',1);else if(ent.kind==='razor')G.missions.bump('razorDown',1);else if(ent.name==='SYNDICATE')G.missions.bump('syndicateDown',1);}setTimeout(()=>scene?.remove(ent.group),3000);}function damage(ent,n){if(!ent.alive)return;ent.hp-=n;if(ent.hp<=0){ent.hp=0;kill(ent);}}function damagePlayer(n){if(G.player.hp<=0)return;G.player.hp=Math.max(0,G.player.hp-n);if(G.player.hp===0&&G.onPlayerDown)G.onPlayerDown();}function tracerTo(to){if(!scene||!camera)return;const from=new T.Vector3(0.38,-0.26,-1.0);camera.localToWorld(from);const line=new THREE.Line(new THREE.BufferGeometry().setFromPoints([from,to]),new THREE.LineBasicMaterial({color:0xffe9a8,transparent:true,opacity:0.9}));scene.add(line);tracers.push({line,t:0.07});}function fireOnce(){const w=W[G.weapon.index];if(w.melee){swingT=0.25;for(const e of G.enemies)if(e.alive&&e.group.position.distanceTo(ppos(G))<w.range)damage(e,w.dmg);return;}if(!camera)return;if(mag<=0){reload();return;}mag-=1;G.weapon.mag=mag;flashT=0.06;flash.intensity=6;for(let p=0;p<w.pellets;p++){ray.setFromCamera(new T.Vector2((Math.random()-0.5)*w.spread*4,(Math.random()-0.5)*w.spread*4),camera);ray.far=w.range;const hits=ray.intersectObjects(G.enemies.filter((e)=>e.alive).map((e)=>e.group),true);const dir=new T.Vector3();camera.getWorldDirection(dir);const end=camera.position.clone().add(dir.multiplyScalar(w.range));if(hits.length){end.copy(hits[0].point);const ent=hits[0].object.userData.ent;if(w.splash)for(const e of G.enemies)if(e.alive&&e.group.position.distanceTo(end)<w.splash)damage(e,w.dmg);else damage(ent,w.dmg);}else if(w.splash)for(const e of G.enemies)if(e.alive&&e.group.position.distanceTo(end)<w.splash)damage(e,w.dmg*0.5);tracerTo(end);}}function reload(){const w=W[G.weapon.index];if(w.melee||reloadT>0||mag>=w.mag||reserve<=0)return;reloadT=1.1;}function finishReload(){const w=W[G.weapon.index],take=Math.min(w.mag-mag,reserve);mag+=take;reserve-=take;G.weapon.mag=mag;G.weapon.ammo=reserve;}window.addEventListener('mousedown',(e)=>{if(e.button===0)firing=true;});window.addEventListener('mouseup',(e)=>{if(e.button===0)firing=false;});window.addEventListener('blur',()=>{firing=false;});function stageFps(){const p=ppos(G);spawnEnemy('viper',p.x-14,p.z-15);spawnEnemy('viper',p.x-8,p.z-19);spawnEnemy('viper',p.x+8,p.z-19);spawnEnemy('viper',p.x+14,p.z-15);spawnAlly('Mara',p.x-2.5,p.z-6);spawnAlly('Riko',p.x-4.5,p.z-7);spawnAlly('Kiko',p.x+3,p.z-6);setViewmodel(3);G.pov='fps';}const v3=new T.Vector3(),proj=new T.Vector3();function update(dt){const playing=G.state==='play',w=W[G.weapon.index];cool-=dt;if(flashT>0){flashT-=dt;flash.intensity=Math.max(0,flashT*100);}if(swingT>0){swingT-=dt;const s=Math.sin((0.25-swingT)/0.25*Math.PI);vmGuns[5].position.x=s*0.25;vmGuns[5].rotation.z=-s*0.6;}else{vmGuns[5].position.x=0;vmGuns[5].rotation.z=0;}if(reloadT>0){reloadT-=dt;if(reloadT<=0)finishReload();}if(keyDown(G,'KeyR')&&G.player&&G.player.onFoot)reload();if(reserve<w.reserve&&!w.melee){reserve=Math.min(w.reserve,reserve+dt*0.5);G.weapon.ammo=reserve;}if(firing&&playing&&!G.wheelOpen&&cool<=0&&reloadT<=0&&(w.auto||!held)){fireOnce();cool=1/w.rate;}held=firing;for(let i=tracers.length-1;i>=0;i--){const t=tracers[i];t.t-=dt;t.line.material.opacity=Math.max(0,t.t*12);if(t.t<=0){scene.remove(t.line);t.line.geometry.dispose();tracers.splice(i,1);}}const pp=ppos(G);for(const e of G.enemies){if(!e.alive)continue;let target=pp,te=null,best=e.group.position.distanceTo(pp);for(const a of G.allies){if(!a.alive)continue;const d=e.group.position.distanceTo(a.group.position);if(d<best){best=d;target=a.group.position;te=a;}}v3 .copy(target).sub(e.group.position);v3 .y=0;const dist=v3 .length();if(dist>12){v3 .normalize();e.group.position.addScaledVector(v3,e.speed*dt);}e.group.lookAt(target.x,0,target.z);e.shootT-=dt;if(e.shootT<=0&&dist<45&&playing){e.shootT=1.4+Math.random()*1.2;if(Math.random()<0.4){if(te)damage(te,7);else damagePlayer(6+Math.random()*4);}}}for(const a of G.allies){if(!a.alive)continue;let near=null,bd=50;for(const e of G.enemies){if(!e.alive)continue;const d=a.group.position.distanceTo(e.group.position);if(d<bd){bd=d;near=e;}}if(near){a.group.lookAt(near.group.position.x,0,near.group.position.z);a.shootT-=dt;if(a.shootT<=0){a.shootT=0.9;if(Math.random()<0.55)damage(near,10);}}}if(camera&&G.renderer){camera.updateMatrixWorld(true);const wpx=G.renderer.domElement.clientWidth||window.innerWidth;const hpx=G.renderer.domElement.clientHeight||window.innerHeight;for(const ent of[...G.enemies,...G.allies]){const b=bars.get(ent);if(!b)continue;if(!ent.alive){b.el.style.display='none';continue;}proj.copy(ent.group.position);proj.y+=ent.name==='RAZOR'?2.6:2.1;proj.project(camera);if(proj.z>1){b.el.style.display='none';continue;}b.el.style.display='block';b.el.style.left=((proj.x*0.5+0.5)*wpx)+'px';b.el.style.top=((-proj.y*0.5+0.5)*hpx)+'px';const f=Math.max(0,ent.hp/ent.maxHp);b.fill.style.width=(f*100)+'%';b.el.style.opacity=f<0.3&&Math.floor((G.time||0)*4)%2===0?'0.35':'1';}}const boss=G.enemies.find((e)=>e.kind==='razor'&&e.alive);if(boss){bossBar.style.display='block';if(bossFill)bossFill.style.width=(boss.hp/boss.maxHp*100)+'%';}else bossBar.style.display='none';vm.visible=!!camera&&G.pov==='fps'&&playing;if(G.player.group)G.player.group.visible=G.pov!=='fps';if(G.setChaos)G.setChaos(G.enemies.some((e)=>e.alive));}G.combat={weapons:W,fire:fireOnce,reload,setViewmodel,spawnEnemy,spawnAlly,damage,damagePlayer,stageFps,update};G.updates=G.updates||[];G.updates.push(update);return G.combat;}
+// combat.js — weapons, shooting, viewmodel, enemies/allies with health bars,
+// tracers, muzzle flash, shells, burning cars. Bars are DOM elements projected
+// from 3D positions each frame (same look as the sealed shots).
+import * as THREE from '../vendor/three.module.min.js';
+import * as A from './assets3d.js';
+import { WEAPONS } from './config.js';
+
+export function createCombat(ctx) {
+  const { scene, camera } = ctx.render;
+  const viewmodel = A.makeViewmodelRifle();
+  viewmodel.position.set(0.62, -0.5, -1.2);
+  viewmodel.scale.setScalar(0.42);
+  viewmodel.rotation.y = 0.35;
+  camera.add(viewmodel);
+  viewmodel.visible = false;
+  scene.add(camera);
+  const barsEl = document.getElementById('bars');
+  const enemies = [];
+  const allies = [];
+  const tracers = [];
+  const shells = [];
+  const fires = [];
+  let flash = null;
+  let lastShot = 0;
+
+  function makeBar(label, cls) {
+    const el = document.createElement('div');
+    el.className = 'bar-tag ' + cls;
+    el.innerHTML = `<span>${label}</span><i><b></b></i>`;
+    barsEl.appendChild(el);
+    return el;
+  }
+  function spawnEnemy(name, x, z, hp = 100) {
+    const g = A.makePerson(0x14161c, 0x14161c, 0xc9a06a);
+    g.add(A.box(0.5, 0.18, 0.2, 0xc0392b, 0, 1.95, 0));
+    g.position.set(x, 0, z); scene.add(g);
+    const e = { name, g, hp, maxHp: hp, bar: makeBar(name, 'enemy'), alive: true };
+    enemies.push(e); return e;
+  }
+  function spawnAlly(name, maker, x, z) {
+    const g = maker();
+    g.position.set(x, 0, z); scene.add(g);
+    const a = { name, g, hp: 100, maxHp: 100, bar: makeBar(name, 'ally'), alive: true };
+    allies.push(a); return a;
+  }
+  function spawnBurningCar(kind, x, z, heading) {
+    const g = kind === 'taxi' ? A.makeTaxi() : kind === 'angkot' ? A.makeAngkot() : A.makeViperCar();
+    g.position.set(x, 0, z); g.rotation.y = heading;
+    g.rotation.z = 0.12; // wrecked tilt
+    scene.add(g);
+    const flame = A.makeFlame(); flame.position.set(x, 1.2, z); scene.add(flame);
+    const smoke = A.makeSmokePuff(); smoke.position.set(x, 4.5, z); scene.add(smoke);
+    fires.push({ flame, smoke, t: Math.random() * 10 });
+    return g;
+  }
+  function muzzleWorld() {
+    const v = new THREE.Vector3(0.55, -0.3, -1.6);
+    return camera.localToWorld(v);
+  }
+  function shoot() {
+    const w = WEAPONS[ctx.player.weaponIndex];
+    if (w.mag === Infinity) return; // fists
+    const now = ctx.time;
+    if (now - lastShot < (w.auto ? 0.11 : 0.3)) return;
+    lastShot = now;
+    const from = muzzleWorld();
+    const dir = new THREE.Vector3();
+    camera.getWorldDirection(dir);
+    // Hit: nearest enemy within a cone in front of the camera.
+    let best = null, bd = 1e9;
+    for (const e of enemies) {
+      if (!e.alive) continue;
+      const to = new THREE.Vector3(e.g.position.x - from.x, 1.4 - from.y, e.g.position.z - from.z);
+      const dist = to.length();
+      if (dist > 90) continue;
+      const ang = to.normalize().angleTo(dir);
+      if (ang < 0.09 && dist < bd) { bd = dist; best = e; }
+    }
+    let end;
+    if (best) {
+      best.hp -= w.dmg;
+      if (best.hp <= 0) { best.hp = 0; best.alive = false; best.g.visible = false; ctx.missions.vipersDown += 1; }
+      end = new THREE.Vector3(best.g.position.x, 1.4, best.g.position.z);
+    } else {
+      end = from.clone().add(dir.multiplyScalar(80));
+    }
+    // Tracer: thin 1px line, muzzle → crosshair point → target.
+    const geo = new THREE.BufferGeometry().setFromPoints([from, end]);
+    const line = new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: 0.9 }));
+    scene.add(line); tracers.push({ line, life: 0.12 });
+    // Muzzle flash star at the barrel.
+    if (flash) scene.remove(flash);
+    flash = A.makeFlame(); flash.scale.setScalar(0.5); flash.position.copy(from); scene.add(flash);
+    // Shell casing arcs out.
+    const sh = A.box(0.09, 0.09, 0.2, 0xffd700, from.x, from.y, from.z);
+    scene.add(sh);
+    shells.push({ m: sh, vx: (Math.random() - 0.5) * 3, vy: 2.5, vz: (Math.random() - 0.5) * 3, life: 1.6 });
+    ctx.audio.shot(w.name);
+    ctx.chaosAt = [ctx.player.x, ctx.player.z];
+  }
+  function syncViewmodel() {
+    const w = WEAPONS[ctx.player.weaponIndex];
+    viewmodel.visible = ctx.player.isFps();
+    viewmodel.children[0].material = A.mat(w.name === 'RIFLE' ? 0xffd700 : w.name === 'BAZOOKA' ? 0xc0392b : 0x2b2f38);
+  }
+  // Project a world position to screen for a health bar.
+  function placeBar(bar, x, y, z, hp, maxHp) {
+    const v = new THREE.Vector3(x, y, z).project(camera);
+    if (v.z > 1) { bar.style.display = 'none'; return; }
+    const sx = (v.x * 0.5 + 0.5) * window.innerWidth;
+    const sy = (-v.y * 0.5 + 0.5) * window.innerHeight;
+    bar.style.display = 'block';
+    bar.style.left = (sx - 26) + 'px';
+    bar.style.top = (sy - 34) + 'px';
+    bar.querySelector('b').style.width = Math.max(0, (hp / maxHp) * 100) + '%';
+  }
+  return {
+    viewmodel, enemies, allies, fires,
+    spawnEnemy, spawnAlly, spawnBurningCar, shoot, syncViewmodel,
+    // Stage a gang-war scene (used by shots 2/3 and mission 3): 6 vipers spread
+    // wide across the avenue (visible at the frame edges past the wheel),
+    // 3 allies closer to the player.
+    stageGangWar(cx, cz) {
+      for (let i = 0; i < 6; i += 1) spawnEnemy('VIPER', cx - 30 + i * 12, cz - 25 - (i % 2) * 10, 100);
+      spawnAlly('Mara', A.makeMara, cx - 24, cz - 10);
+      spawnAlly('Riko', A.makeRiko, cx + 24, cz - 8);
+      spawnAlly('Kiko', A.makeKiko, cx, cz - 14);
+    },
+    update(dt) {
+      const input = ctx.input;
+      if (!ctx.player.inCar && input.mouseDown) shoot();
+      if (input.wasPressed('Digit1')) ctx.wheel.select(0);
+      if (input.wasPressed('Digit2')) ctx.wheel.select(1);
+      if (input.wasPressed('Digit3')) ctx.wheel.select(2);
+      if (input.wasPressed('Digit4')) ctx.wheel.select(3);
+      if (input.wasPressed('Digit5')) ctx.wheel.select(4);
+      if (input.wasPressed('Digit6')) ctx.wheel.select(5);
+      // Tracers fade, shells fall, flames flicker, smoke rises.
+      for (let i = tracers.length - 1; i >= 0; i -= 1) {
+        tracers[i].life -= dt;
+        if (tracers[i].life <= 0) { scene.remove(tracers[i].line); tracers.splice(i, 1); }
+      }
+      for (let i = shells.length - 1; i >= 0; i -= 1) {
+        const s = shells[i]; s.life -= dt; s.vy -= 9 * dt;
+        s.m.position.x += s.vx * dt; s.m.position.y += s.vy * dt; s.m.position.z += s.vz * dt;
+        if (s.m.position.y < 0.05) { s.m.position.y = 0.05; s.vy = 0; s.vx = 0; s.vz = 0; }
+        if (s.life <= 0) { scene.remove(s.m); shells.splice(i, 1); }
+      }
+      if (flash) { flash.scale.multiplyScalar(0.8); if (flash.scale.x < 0.05) { scene.remove(flash); flash = null; } }
+      for (const f of fires) {
+        f.t += dt;
+        f.flame.scale.set(1 + Math.sin(f.t * 9) * 0.25, 1 + Math.sin(f.t * 13) * 0.3, 1);
+        f.smoke.position.y += dt * 1.4;
+        if (f.smoke.position.y > 12) f.smoke.position.y = 4.5;
+      }
+      // Health bars follow their fighters.
+      for (const e of enemies) placeBar(e.bar, e.g.position.x, 2.6, e.g.position.z, e.hp, e.maxHp);
+      for (const a of allies) placeBar(a.bar, a.g.position.x, 2.6, a.g.position.z, a.hp, a.maxHp);
+      // Boss bar (Razor) when set.
+      const boss = ctx.missions.boss;
+      if (boss) {
+        const el = document.getElementById('boss-bar');
+        el.style.display = 'block';
+        el.querySelector('.boss-name').textContent = `RAZOR — BOSS | LV 20`;
+        document.getElementById('boss-fill').style.width = Math.max(0, (boss.hp / boss.maxHp) * 100) + '%';
+      }
+    },
+  };
+}

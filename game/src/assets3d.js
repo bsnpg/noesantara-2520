@@ -1,1 +1,240 @@
-import*as THREE from'../vendor/three.module.min.js';const _T=THREE;export const PAL={gold:0xc9a227,teal:0x14b8a6,cream:0xf5e6b8,dark:0x0b1f2a,brick:0xa44a3f,white:0xffffff,grey:0x777777,navy:0x0f3d5c,pink:0xff4fa3,red:0xd21f1f,blue:0x1d4ed8,green:0x2e7d32,amber:0xf59e0b,purple:0x7c3aed,tealD:0x0f766e,jade:0x059669,peach:0xffd9a0,slate:0x475569,lime:0x65a30d,rose:0xe11d48,};function cnv(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}function tx(c,rx=1,ry=1){const t=new _T.CanvasTexture(c);t.wrapS=t.wrapT=_T.RepeatWrapping;t.repeat.set(rx,ry);t.colorSpace=_T.SRGBColorSpace;return t;}function batikParang(){const c=cnv(256,256),g=c.getContext('2d');g.fillStyle='#f5e6b8';g.fillRect(0,0,256,256);g.strokeStyle='#8a6d00';g.lineWidth=5;for(let y=-40;y<300;y+=48){g.beginPath();for(let x=0;x<=256;x+=8)g.lineTo(x,y+Math.sin(x/22)*16);g.stroke();}g.strokeStyle='#14b8a6';g.lineWidth=2.5;for(let y=-16;y<300;y+=48){g.beginPath();for(let x=0;x<=256;x+=8)g.lineTo(x,y+Math.sin(x/22+1)*16);g.stroke();}return tx(c,2,1);}function batikMega(){const c=cnv(256,256),g=c.getContext('2d');g.fillStyle='#0f766e';g.fillRect(0,0,256,256);g.strokeStyle='#f5e6b8';g.lineWidth=4;for(let i=0;i<9;i++){const y=i*30+12;g.beginPath();g.arc(60+(i%2)*120,y,26,0,Math.PI);g.stroke();g.beginPath();g.arc(60+(i%2)*120,y+22,15,Math.PI,0);g.stroke();}return tx(c,2,1);}function winTex(){const c=cnv(512,128),g=c.getContext('2d');g.fillStyle='#0b1f2a';g.fillRect(0,0,512,128);g.strokeStyle='#c9a227';g.lineWidth=6;g.strokeRect(4,4,504,120);g.fillStyle='#f2c94c';g.font='bold 64px system-ui';g.textAlign='center';g.fillText('WINNER',256,88);return tx(c);}function brickTex(){const c=cnv(256,256),g=c.getContext('2d');g.fillStyle='#a44a3f';g.fillRect(0,0,256,256);g.strokeStyle='#7c352c';g.lineWidth=2;for(let y=0;y<=256;y+=32){g.beginPath();g.moveTo(0,y);g.lineTo(256,y);g.stroke();}for(let y=0;y<256;y+=32)for(let x=(y/32%2)*32;x<=256;x+=64){g.beginPath();g.moveTo(x,y);g.lineTo(x,y+32);g.stroke();}return tx(c);}function stripeTex(){const c=cnv(128,128),g=c.getContext('2d');g.fillStyle='#f5e6b8';g.fillRect(0,0,128,128);g.fillStyle='#c9a227';g.fillRect(0,0,128,24);g.fillRect(0,64,128,24);g.fillStyle='#14b8a6';g.fillRect(0,24,128,12);g.fillRect(0,88,128,12);return tx(c);}const _texCache={};function textTex(t,bg,fg,w=256,h=64){const key=t+'|'+bg+'|'+fg+'|'+w+'|'+h;if(_texCache[key])return _texCache[key];const c=cnv(w,h),g=c.getContext('2d');g.fillStyle='#'+bg.toString(16).padStart(6,'0');g.fillRect(0,0,w,h);g.fillStyle='#'+fg.toString(16).padStart(6,'0');g.font='bold '+Math.round(h*0.62)+'px system-ui';g.textAlign='center';g.textBaseline='middle';g.fillText(t,w/2,h/2+1);return _texCache[key]=tx(c);}const _matCache={};export function mat(color,op={}){const key=color+'|'+(op.transparent?1:0)+'|'+(op.opacity??1)+'|'+(op.emissive||0)+'|'+(op.map?1:0);if(_matCache[key])return _matCache[key];const m=new _T.MeshStandardMaterial({color,roughness:0.8,metalness:0.08,...op});return _matCache[key]=m;}export function B(w,h,d,color,op){const m=new _T.Mesh(new _T.BoxGeometry(w,h,d),mat(color,op));m.castShadow=true;m.receiveShadow=true;return m;}export function CY(rt,rb,h,color,op,seg=16){const m=new _T.Mesh(new _T.CylinderGeometry(rt,rb,h,seg),mat(color,op));m.castShadow=true;m.receiveShadow=true;return m;}export function CO(r,h,color,op,seg=20){const m=new _T.Mesh(new _T.ConeGeometry(r,h,seg),mat(color,op));m.castShadow=true;m.receiveShadow=true;return m;}export function SP(r,color,op,w=16,hh=12){const m=new _T.Mesh(new _T.SphereGeometry(r,w,hh),mat(color,op));m.castShadow=true;return m;}export function G(group,children){for(const[m,x,y,z,rx,ry,rz,s]of children){m.position.set(x||0,y||0,z||0);if(rx)m.rotation.x=rx;if(ry)m.rotation.y=ry;if(rz)m.rotation.z=rz;if(s)m.scale.setScalar(s);group.add(m);}return group;}let _finId=0;export function fin(group,name,size){group.userData={id:_finId++,name:name||'asset',size:size||[1,1,1]};return group;}export function facadeBox(w,h,d,color,tex){const grp=new _T.Group();const body=B(w,h,d,color,tex?{map:tex}:undefined);grp.add(body);const edge=B(w*1.02,h*0.06,d*1.02,PAL.gold);edge.position.y=h/2-0.1;grp.add(edge);return grp;}export function wedge(w,h,d,color,op){const geo=new _T.BufferGeometry();const hw=w/2,hd=d/2,fx=hw*0.35;const v=[-hw,0,hd,hw,0,hd,hw,0,-hd,-hw,0,-hd,-hw,h,hd,fx,h,hd,fx,h,-hd,-hw,h,-hd,];const idx=[3,0,4,3,4,7,1,2,6,1,6,5,4,5,6,4,6,7,0,2,1,0,3,2,0,1,5,0,5,4,2,3,7,2,7,6,];geo.setAttribute('position',new _T.Float32BufferAttribute(v,3));geo.setIndex(idx);geo.computeVertexNormals();const m=new _T.Mesh(geo,mat(color,op));m.castShadow=true;return m;}export function canopy(w,h,d,color,op){const geo=new _T.BoxGeometry(w,h,d);const m=new _T.Mesh(geo,mat(color,{transparent:true,opacity:0.55,roughness:0.15,metalness:0.4,...(op||{})}));m.castShadow=true;return m;}const GOLD=PAL.gold,TEAL=PAL.teal,BRICK=PAL.brick,CREAM=PAL.cream,DARK=PAL.dark;const WIN=new _T.MeshBasicMaterial({map:winTex()});export function signPanel(t,w,h,bg,fg){const m=new _T.Mesh(new _T.PlaneGeometry(w,h),new _T.MeshBasicMaterial({map:textTex(t,bg,fg,Math.round(w*64),Math.round(h*64))}));return m;}export function pyramid(r,h,color,op){return CO(r,h,color,op,4);}export function OfficeTower(opts={}){const h=opts.h||26,w=opts.w||14,d=opts.d||14;const grp=facadeBox(w,h,d,opts.color||0x2a4a6b);const win=B(w*0.9,h*0.8,0.2,0x9fd8f0,{emissive:0x1a3a4a,emissiveIntensity:0.4});win.position.set(0,0,d/2+0.05);grp.add(win);const roof=B(w*0.5,2,d*0.5,GOLD);roof.position.y=h/2+1;grp.add(roof);const spire=CO(1,6,GOLD);spire.position.y=h/2+4;grp.add(spire);if(opts.sign){const s=signPanel(opts.sign,w*0.7,2,DARK,GOLD);s.position.set(0,h/2-3,d/2+0.2);grp.add(s);}return fin(grp,'OfficeTower',[w,h,d]);}export function Shophouse(opts={}){const h=opts.h||10,w=opts.w||9,d=opts.d||9;const grp=facadeBox(w,h,d,opts.color||CREAM);const roof=pyramid(w*0.75,3,opts.roof||TEAL);roof.position.y=h/2+1.5;grp.add(roof);const door=B(2,3.4,0.2,DARK);door.position.set(0,-h/2+1.7,d/2+0.1);grp.add(door);for(const wy of[-h/2+5.5,-h/2+8]){const win=B(w*0.7,1.6,0.2,0x9fd8f0);win.position.set(0,wy,d/2+0.05);grp.add(win);}if(opts.sign){const s=signPanel(opts.sign,w*0.8,1.6,opts.signBg||DARK,opts.signFg||GOLD);s.position.set(0,h/2-1.6,d/2+0.2);grp.add(s);}return fin(grp,'Shophouse',[w,h,d]);}export function Mall(opts={}){const h=opts.h||16,w=opts.w||26,d=opts.d||20;const grp=facadeBox(w,h,d,opts.color||0x8a7a5a);const glass=B(w*0.85,h*0.6,0.3,0x9fd8f0,{emissive:0x223344,emissiveIntensity:0.5});glass.position.set(0,0,d/2+0.1);grp.add(glass);const band=B(w*1.02,1.4,d*1.02,GOLD);band.position.y=h/2-1;grp.add(band);if(opts.sign){const s=signPanel(opts.sign,w*0.6,2.4,DARK,GOLD);s.position.set(0,h/2-3,d/2+0.3);grp.add(s);}return fin(grp,'Mall',[w,h,d]);}export function MarketHall(opts={}){const h=opts.h||9,w=opts.w||24,d=opts.d||16;const grp=new _T.Group();const base=B(w,h,d,CREAM);grp.add(base);const roof=CO(w*0.7,5,TEAL,undefined,4);roof.rotation.y=Math.PI/4;roof.position.y=h/2+2.5;roof.scale.set(1,1,d/w);grp.add(roof);for(let i=-2;i<=2;i++){const col=CY(0.5,0.5,h,GOLD);col.position.set(i*5,0,d/2+0.3);grp.add(col);}if(opts.sign){const s=signPanel(opts.sign,w*0.5,2,TEAL,CREAM);s.position.set(0,h/2-2,d/2+0.2);grp.add(s);}return fin(grp,'MarketHall',[w,h,d]);}export function MarketStall(opts={}){const grp=new _T.Group();const counter=B(4,1.2,2.4,opts.color||0x8a6d3b);counter.position.y=0.6;grp.add(counter);const canopyM=B(4.6,0.15,3,opts.canopy||PAL.pink);canopyM.position.y=3;grp.add(canopyM);for(const[px,pz]of[[-2,-1.2],[2,-1.2],[-2,1.2],[2,1.2]]){const p=CY(0.08,0.08,3,DARK);p.position.set(px,1.5,pz);grp.add(p);}const goods=B(3.4,0.5,1.8,opts.goods||PAL.amber);goods.position.y=1.45;grp.add(goods);return fin(grp,'MarketStall',[4.6,3.2,3]);}export function House(opts={}){const h=opts.h||6,w=opts.w||8,d=opts.d||8;const grp=facadeBox(w,h,d,opts.color||CREAM);const roof=pyramid(w*0.75,2.4,opts.roof||BRICK);roof.position.y=h/2+1.2;grp.add(roof);const door=B(1.6,2.6,0.2,DARK);door.position.set(0,-h/2+1.3,d/2+0.1);grp.add(door);return fin(grp,'House',[w,h,d]);}export function Temple(opts={}){const grp=new _T.Group();const base=B(14,2,14,0x8a7a5a);base.position.y=1;grp.add(base);let y=2;for(let i=0;i<4;i++){const w=12-i*2.2;const tier=B(w,2.4,w,i%2?TEAL:CREAM);tier.position.y=y+1.2;grp.add(tier);y+=2.4;const trim=B(w*1.02,0.3,w*1.02,GOLD);trim.position.y=y;grp.add(trim);}const top=CO(1.2,4,GOLD);top.position.y=y+2;grp.add(top);if(opts.sign){const s=signPanel(opts.sign,8,1.8,DARK,GOLD);s.position.set(0,3.4,7.2);grp.add(s);}return fin(grp,'Temple',[14,y+4,14]);}export function Warehouse(opts={}){const h=opts.h||8,w=opts.w||18,d=opts.d||12;const grp=facadeBox(w,h,d,opts.color||0x6b7280,brickTex());const roof=B(w*1.02,1,d*1.02,0x374151);roof.position.y=h/2+0.5;grp.add(roof);const door=B(6,5,0.3,DARK);door.position.set(0,-h/2+2.5,d/2+0.1);grp.add(door);return fin(grp,'Warehouse',[w,h,d]);}export function Hotel(opts={}){const h=opts.h||20,w=opts.w||16,d=opts.d||12;const grp=facadeBox(w,h,d,opts.color||0xd8b4a0);for(let i=0;i<5;i++){const balc=B(w*0.8,0.4,1.2,GOLD);balc.position.set(0,-h/2+3+i*3.4,d/2+0.5);grp.add(balc);}if(opts.sign){const s=signPanel(opts.sign,w*0.6,2,DARK,GOLD);s.position.set(0,h/2-2.4,d/2+0.2);grp.add(s);}return fin(grp,'Hotel',[w,h,d]);}export function Gapura(opts={}){const grp=new _T.Group();const w=opts.w||12,h=opts.h||10;for(const sx of[-1,1]){const pil=B(2,h,2,opts.color||BRICK);pil.position.set(sx*(w/2-1),h/2,0);grp.add(pil);const cap=pyramid(2,2.4,GOLD);cap.position.set(sx*(w/2-1),h+1.2,0);grp.add(cap);}const beam=B(w,1.6,1.6,opts.color||BRICK);beam.position.set(0,h-1,0);grp.add(beam);if(opts.sign){const s=signPanel(opts.sign,w*0.7,1.4,DARK,GOLD);s.position.set(0,h-1,1);grp.add(s);}return fin(grp,'Gapura',[w,h+2.4,2]);}export function SpireTower(opts={}){const h=opts.h||60,w=opts.w||18,d=opts.d||18;const grp=new _T.Group();const base=B(w,h*0.7,d,0x1a2a3a);base.position.y=h*0.35;grp.add(base);const mid=B(w*0.7,h*0.25,d*0.7,GOLD);mid.position.y=h*0.7+h*0.125;grp.add(mid);const tip=CO(w*0.35,h*0.15,GOLD);tip.position.y=h*0.95+h*0.075;grp.add(tip);const glow=SP(3,0xffd700,{emissive:0xffd700,emissiveIntensity:1.6});glow.position.y=h+2;grp.add(glow);return fin(grp,'SpireTower',[w,h+4,d]);}export function ClockTower(opts={}){const h=opts.h||22,w=opts.w||6,d=opts.d||6;const grp=new _T.Group();const body=B(w,h,d,CREAM);body.position.y=h/2;grp.add(body);const face=CY(w*0.55,w*0.55,0.3,0xffffff,undefined,24);face.rotation.x=Math.PI/2;face.position.set(0,h-3,d/2+0.2);grp.add(face);const cap=pyramid(w*0.8,3,TEAL);cap.position.y=h+1.5;grp.add(cap);return fin(grp,'ClockTower',[w,h+3,d]);}export function BillboardPylon(opts={}){const grp=new _T.Group();const pole=CY(0.5,0.7,opts.h||10,DARK);pole.position.y=(opts.h||10)/2;grp.add(pole);const board=B(opts.w||10,opts.bh||5,0.4,opts.color||DARK);board.position.y=(opts.h||10)+(opts.bh||5)/2;grp.add(board);if(opts.sign){const s=signPanel(opts.sign,(opts.w||10)*0.9,(opts.bh||5)*0.8,opts.signBg||DARK,opts.signFg||GOLD);s.position.set(0,(opts.h||10)+(opts.bh||5)/2,0.3);grp.add(s);}return fin(grp,'BillboardPylon',[opts.w||10,(opts.h||10)+(opts.bh||5),1]);}export function BillboardPole(opts={}){const grp=new _T.Group();const pole=CY(0.3,0.4,opts.h||8,DARK);pole.position.y=(opts.h||8)/2;grp.add(pole);const board=B(opts.w||6,opts.bh||3,0.3,opts.color||TEAL);board.position.y=(opts.h||8)+(opts.bh||3)/2;grp.add(board);if(opts.sign){const s=signPanel(opts.sign,(opts.w||6)*0.85,(opts.bh||3)*0.7,opts.signBg||DARK,opts.signFg||CREAM);s.position.set(0,(opts.h||8)+(opts.bh||3)/2,0.25);grp.add(s);}return fin(grp,'BillboardPole',[opts.w||6,(opts.h||8)+(opts.bh||3),1]);}function palmFrond(len,color){const grp=new _T.Group();const rib=B(0.08,0.08,len,0x6b4a2a);rib.position.z=len/2;grp.add(rib);for(let i=0;i<7;i++){const t=(i+1)/8;for(const sx of[-1,1]){const leaf=B(0.06,0.02,len*0.28,color);leaf.position.set(sx*len*0.12,0,len*t);leaf.rotation.y=sx*0.6;leaf.rotation.z=sx*0.5;grp.add(leaf);}}return grp;}export function Palm(opts={}){const h=opts.h||7;const grp=new _T.Group();const trunk=CY(0.25,0.4,h,0x6b4a2a);trunk.position.y=h/2;trunk.rotation.z=0.08;grp.add(trunk);for(let i=0;i<8;i++){const frond=palmFrond(3.2,PAL.green);frond.position.set(0,h,0);frond.rotation.y=(i/8)*Math.PI*2;frond.rotation.x=-0.5-(i%3)*0.12;grp.add(frond);}const nuts=SP(0.5,0x8a6d3b);nuts.position.set(0.3,h-0.3,0.2);grp.add(nuts);return fin(grp,'Palm',[6,h+1,6]);}export function ShadeTree(opts={}){const h=opts.h||6;const grp=new _T.Group();const trunk=CY(0.35,0.5,h*0.6,0x5a3a22);trunk.position.y=h*0.3;grp.add(trunk);for(const[bx,by,bz]of[[-1.4,h*0.55,0],[1.3,h*0.62,0.4],[0,h*0.58,-1.2]]){const br=CY(0.12,0.2,h*0.5,0x5a3a22);br.position.set(bx/2,by,bz/2);br.rotation.z=bx*0.4;br.rotation.x=-bz*0.3;grp.add(br);}const c1=SP(h*0.45,PAL.green);c1 .position.y=h*0.85;grp.add(c1);const c2=SP(h*0.32,PAL.jade);c2 .position.set(1.2,h*0.75,0.5);grp.add(c2);const c3=SP(h*0.3,PAL.lime);c3 .position.set(-1.1,h*0.78,-0.4);grp.add(c3);return fin(grp,'ShadeTree',[h,h*1.3,h]);}export function GardenTree(opts={}){const h=opts.h||4;const grp=new _T.Group();const trunk=CY(0.2,0.3,h*0.5,0x5a3a22);trunk.position.y=h*0.25;grp.add(trunk);const ball=SP(h*0.42,opts.color||PAL.pink);ball.position.y=h*0.75;grp.add(ball);const ball2=SP(h*0.25,PAL.amber);ball2 .position.set(0.6,h*0.6,0.3);grp.add(ball2);return fin(grp,'GardenTree',[h,h*1.2,h]);}function poleSign(t,bg,fg,w=4,h=1.6,poleH=4){const grp=new _T.Group();const pole=CY(0.12,0.12,poleH,DARK);pole.position.y=poleH/2;grp.add(pole);const s=signPanel(t,w,h,bg,fg);s.position.y=poleH+h/2;grp.add(s);return grp;}export function SignBatik(opts={}){return fin(poleSign('BATIK',DARK,GOLD,4,1.6,4),'SignBatik',[4,5.6,1]);}export function SignGarage(opts={}){return fin(poleSign('GARAGE RIKO',TEAL,CREAM,5,1.6,4),'SignGarage',[5,5.6,1]);}export function SignSafehouse(opts={}){return fin(poleSign('SAFEHOUSE',DARK,CREAM,5,1.6,4),'SignSafehouse',[5,5.6,1]);}export function SignMarket(opts={}){return fin(poleSign('PASAR',PAL.amber,DARK,4,1.6,4),'SignMarket',[4,5.6,1]);}export function StreetLamp(opts={}){const h=opts.h||6;const grp=new _T.Group();const pole=CY(0.12,0.16,h,DARK);pole.position.y=h/2;grp.add(pole);const arm=B(1.6,0.12,0.12,DARK);arm.position.set(0.8,h,0);grp.add(arm);const lamp=SP(0.35,0xfff2b0,{emissive:0xffe98a,emissiveIntensity:1.2});lamp.position.set(1.5,h-0.2,0);grp.add(lamp);return fin(grp,'StreetLamp',[2,h,1]);}export function TrafficLight(opts={}){const h=opts.h||5.5;const grp=new _T.Group();const pole=CY(0.14,0.18,h,DARK);pole.position.y=h/2;grp.add(pole);const box=B(0.7,1.8,0.5,DARK);box.position.y=h+0.6;grp.add(box);const cols=[0xff3333,0xffcc00,0x33cc66];cols.forEach((c,i)=>{const l=SP(0.2,c,{emissive:c,emissiveIntensity:i===1?1.4:0.4});l.position.set(0,h+1.2-i*0.55,0.3);grp.add(l);});return fin(grp,'TrafficLight',[1,h+1.5,1]);}export function Bench(opts={}){const grp=new _T.Group();const seat=B(2.4,0.15,0.8,opts.color||0x8a6d3b);seat.position.y=0.5;grp.add(seat);const back=B(2.4,0.9,0.12,opts.color||0x8a6d3b);back.position.set(0,1,-0.35);grp.add(back);for(const sx of[-1,1]){const leg=B(0.12,0.5,0.7,DARK);leg.position.set(sx*1,0.25,0);grp.add(leg);}return fin(grp,'Bench',[2.4,1.4,0.8]);}export function Planter(opts={}){const grp=new _T.Group();const box=B(2,0.8,2,opts.color||BRICK);box.position.y=0.4;grp.add(box);const bush=SP(0.9,PAL.green);bush.position.y=1.1;grp.add(bush);const bush2=SP(0.5,PAL.jade);bush2 .position.set(0.6,0.9,0.3);grp.add(bush2);return fin(grp,'Planter',[2,1.8,2]);}export function Fountain(opts={}){const grp=new _T.Group();const basin=CY(3,3.4,1,0x8a7a5a,undefined,24);basin.position.y=0.5;grp.add(basin);const water=CY(2.7,2.7,0.2,0x4db8e8,{transparent:true,opacity:0.7},24);water.position.y=0.95;grp.add(water);const pillar=CY(0.5,0.7,2.4,CREAM);pillar.position.y=2;grp.add(pillar);const top=SP(0.6,GOLD);top.position.y=3.4;grp.add(top);return fin(grp,'Fountain',[6.8,4,6.8]);}export function BusStop(opts={}){const grp=new _T.Group();for(const[px,pz]of[[-1.6,-0.8],[1.6,-0.8]]){const p=CY(0.1,0.1,2.6,DARK);p.position.set(px,1.3,pz);grp.add(p);}const roof=B(4,0.15,2,TEAL);roof.position.y=2.7;grp.add(roof);const bench=Bench();bench.position.set(0,0,-0.5);grp.add(bench);const s=signPanel('BUS',1.6,0.8,DARK,GOLD);s.position.set(0,2.2,0.2);grp.add(s);return fin(grp,'BusStop',[4,2.8,2]);}export function Kiosk(opts={}){const grp=new _T.Group();const box=B(2.6,2.6,2.2,opts.color||TEAL);box.position.y=1.3;grp.add(box);const roof=B(3,0.2,2.6,GOLD);roof.position.y=2.7;grp.add(roof);const win=B(1.8,0.9,0.1,0x9fd8f0);win.position.set(0,1.6,1.15);grp.add(win);if(opts.sign){const s=signPanel(opts.sign,2.2,0.7,DARK,GOLD);s.position.set(0,2.3,1.15);grp.add(s);}return fin(grp,'Kiosk',[3,2.8,2.6]);}export function FlagPole(opts={}){const h=opts.h||9;const grp=new _T.Group();const pole=CY(0.1,0.14,h,0xcccccc);pole.position.y=h/2;grp.add(pole);const flag=B(2.2,1.4,0.05,opts.color||PAL.red,{emissive:opts.color||PAL.red,emissiveIntensity:0.3});flag.position.set(1.15,h-0.8,0);grp.add(flag);return fin(grp,'FlagPole',[2.4,h,1]);}function hoverPods(grp,len,wid){for(const[px,pz]of[[len*0.32,wid*0.42],[len*0.32,-wid*0.42],[-len*0.32,wid*0.42],[-len*0.32,-wid*0.42]]){const pod=CY(0.42,0.5,0.35,DARK,undefined,12);pod.position.set(px,0.18,pz);grp.add(pod);const ring=new _T.Mesh(new _T.TorusGeometry(0.42,0.07,8,20),mat(TEAL,{emissive:TEAL,emissiveIntensity:0.8}));ring.rotation.x=Math.PI/2;ring.position.set(px,0.05,pz);grp.add(ring);}}function carLights(grp,len,wid){for(const sz of[-1,1]){const hl=B(0.12,0.18,0.4,0xffffff,{emissive:0xffffff,emissiveIntensity:1.6});hl.position.set(len*0.44,0.7,sz*wid*0.32);grp.add(hl);const tl=B(0.12,0.18,0.4,0xff2222,{emissive:0xff2222,emissiveIntensity:1.2});tl.position.set(-len*0.44,0.7,sz*wid*0.32);grp.add(tl);}}function wingFor(grp,kind,len,wid){if(kind==='garuda'){for(const sz of[-1,1]){const w=B(1.0,0.06,0.6,GOLD);w.position.set(-len*0.42,1.12,sz*(wid*0.48));w.rotation.y=sz*0.45;w.rotation.z=0.12;grp.add(w);const tip=B(0.4,0.06,0.25,TEAL);tip.position.set(-len*0.55,1.2,sz*(wid*0.68));tip.rotation.y=sz*0.45;grp.add(tip);}}else if(kind==='fin'){const f=B(0.12,0.9,1.2,DARK);f.position.set(-len*0.42,1.25,0);grp.add(f);}else if(kind==='arrow'){const w=B(1.2,0.08,wid*1.3,0x1d4ed8);w.position.set(-len*0.4,1.1,0);grp.add(w);}}export function sportCar(o={}){const len=o.len||4.6,wid=o.wid||2,h=o.h||0.9;const grp=new _T.Group();const body=wedge(len,h,wid,o.color||0x2f6fb2);body.position.y=0.55;grp.add(body);const glass=canopy(len*0.42,0.55,wid*0.72,0x11181d);glass.position.set(-len*0.05,h+0.2,0);grp.add(glass);const glow=B(len*0.8,0.08,wid*0.7,o.glow||TEAL,{emissive:o.glow||TEAL,emissiveIntensity:0.9,transparent:true,opacity:0.7});glow.position.y=0.12;grp.add(glow);hoverPods(grp,len,wid);carLights(grp,len,wid);for(const sz of[-1,1]){const ex=CY(0.12,0.12,0.4,DARK,undefined,10);ex.rotation.z=Math.PI/2;ex.position.set(-len*0.5,0.55,sz*wid*0.25);grp.add(ex);}if(o.stripe){const st=B(len*0.9,0.06,wid*0.3,o.stripe);st.position.set(0,h+0.05,0);grp.add(st);}if(o.wing)wingFor(grp,o.wing,len,wid);if(o.grille){const gr=B(0.15,0.4,wid*0.6,DARK);gr.position.set(len*0.5,0.65,0);grp.add(gr);}if(o.scoop){const sc=B(0.9,0.25,0.7,DARK);sc.position.set(len*0.1,h+0.55,0);grp.add(sc);}if(o.strobe){for(const[sx,c]of[[-0.3,0xcc1122],[0.3,0x2266ff]]){const s=B(0.5,0.15,0.5,c,{emissive:c,emissiveIntensity:2});s.position.set(sx,h+0.55,0);grp.add(s);}}if(o.sign){const s=signPanel(o.sign,2.4,0.6,DARK,GOLD);s.position.set(0,0.75,wid/2+0.05);grp.add(s);}if(o.driver){const d=figure({jacket:GOLD,trim:TEAL,helmet:GOLD});d.position.set(-len*0.05,0.45,0);d.scale.setScalar(0.55);grp.add(d);}return fin(grp,o.name||'HoverCar',[len,1.6,wid]);}export function boxyCar(o={}){const len=o.len||5,wid=o.wid||2.1,h=o.h||1.6;const grp=new _T.Group();const body=B(len,h,wid,o.color||0x2f6fb2);body.position.y=0.9;grp.add(body);const glass=canopy(len*0.5,0.7,wid*0.8,0x11181d);glass.position.set(len*0.05,h+0.25,0);grp.add(glass);const glow=B(len*0.8,0.08,wid*0.7,o.glow||TEAL,{emissive:o.glow||TEAL,emissiveIntensity:0.7,transparent:true,opacity:0.6});glow.position.y=0.12;grp.add(glow);hoverPods(grp,len,wid);carLights(grp,len,wid);if(o.stripe){const st=B(len*0.9,0.3,0.06,o.stripe);st.position.set(0,1.1,wid/2+0.05);grp.add(st);const st2=st.clone();st2 .position.z=-wid/2-0.05;grp.add(st2);}if(o.roofSign){const rs=B(1.4,0.4,0.5,GOLD);rs.position.set(0,h+0.8,0);grp.add(rs);const s=signPanel(o.roofSign,1.3,0.35,DARK,GOLD);s.position.set(0,h+0.8,0.3);grp.add(s);}if(o.sign){const s=signPanel(o.sign,2.2,0.6,DARK,CREAM);s.position.set(0,1.1,wid/2+0.05);grp.add(s);}return fin(grp,o.name||'BoxyCar',[len,h+0.8,wid]);}export function makeHoverCar(o={}){return sportCar({color:o.color||0x2f6fb2,name:'HoverCar'});}export function makeGarudaGT(){return sportCar({color:GOLD,wing:'garuda',stripe:TEAL,glow:TEAL,sign:'GARUDA GT',driver:true,name:'GarudaGT'});}export function makeKomodoR(){return sportCar({color:0xd8d8d8,grille:true,scoop:true,name:'KomodoR'});}export function makeViper(){return sportCar({color:0x1a1a1a,wing:'fin',name:'Viper'});}export function makeTaxi(){return boxyCar({color:0xffb300,roofSign:'TAXI',name:'Taxi'});}export function makeAngkot(){return boxyCar({color:0x14b8a6,len:5,name:'Angkot'});}export function makeNPDInterceptor(){return sportCar({color:0xf5f2ea,stripe:0x1d4ed8,wing:'arrow',strobe:true,name:'NPDInterceptor'});}export function makeGajahTruck(){const grp=new _T.Group();const cab=boxyCar({color:0x8a6d3b,len:2.4,h:2,name:'GajahCab'});cab.position.x=2.4;grp.add(cab);const cargo=B(4.6,2.6,2.4,0x6b7280);cargo.position.set(-1.6,1.5,0);grp.add(cargo);const tarp=B(4.6,0.3,2.4,TEAL);tarp.position.set(-1.6,2.9,0);grp.add(tarp);hoverPods(grp,7.4,2.4);return fin(grp,'GajahTruck',[7.4,3.2,2.4]);}export function makeCapungBike(){const grp=new _T.Group();const body=wedge(2.6,0.5,0.7,TEAL);body.position.y=0.6;grp.add(body);const seat=B(0.9,0.15,0.5,DARK);seat.position.set(-0.5,0.95,0);grp.add(seat);const bar=CY(0.05,0.05,0.8,DARK);bar.rotation.x=Math.PI/2;bar.position.set(1.1,1,0);grp.add(bar);const glow=B(2,0.06,0.5,TEAL,{emissive:TEAL,emissiveIntensity:1});glow.position.y=0.15;grp.add(glow);for(const[px,pz]of[[0.9,0.3],[0.9,-0.3],[-0.9,0.3],[-0.9,-0.3]]){const pod=CY(0.22,0.28,0.25,DARK,undefined,10);pod.position.set(px,0.2,pz);grp.add(pod);}return fin(grp,'CapungBike',[2.6,1.2,0.9]);}export function figure(o={}){const grp=new _T.Group();const skin=o.skin||0xc98d64;const s=o.scale||1;const legH=0.8,torsoH=0.7,headR=0.28;const pants=o.pants||0x23282e;for(const sx of[-1,1]){const leg=B(0.2,legH,0.2,pants);leg.position.set(sx*0.13,legH/2,0);grp.add(leg);const shoe=B(0.22,0.12,0.36,DARK);shoe.position.set(sx*0.13,0.06,0.05);grp.add(shoe);}const torsoC=o.batiki?0xf5e6b8:(o.jacket||0x2a4a6b);const torso=B(o.bulk?0.72:0.55,torsoH,0.32,torsoC);torso.position.y=legH+torsoH/2;grp.add(torso);if(o.trim){const tr=B(0.56,0.08,0.34,o.trim);tr.position.y=legH+torsoH-0.05;grp.add(tr);}if(o.batiki){const motif=B(0.56,0.3,0.34,TEAL);motif.position.y=legH+torsoH/2;grp.add(motif);}if(o.skirt){const sk=CY(0.36,0.44,0.5,o.skirt,undefined,12);sk.position.y=legH+0.1;grp.add(sk);}for(const sx of[-1,1]){const arm=B(0.16,0.65,0.16,o.jacket||skin);arm.position.set(sx*0.36,legH+torsoH-0.3,0);grp.add(arm);const hand=SP(0.09,skin);hand.position.set(sx*0.36,legH+torsoH-0.65,0);grp.add(hand);}if(o.pack){const pk=B(0.4,0.5,0.2,o.pack);pk.position.set(0,legH+torsoH/2,-0.26);grp.add(pk);}const headY=legH+torsoH+headR+0.05;const head=SP(headR,skin);head.position.y=headY;grp.add(head);if(o.cap){const cp=CY(headR+0.04,headR+0.04,0.12,o.cap,undefined,12);cp.position.y=headY+headR*0.7;grp.add(cp);}if(o.helmet){const hm=SP(headR+0.06,o.helmet);hm.position.y=headY+0.06;hm.scale.y=0.85;grp.add(hm);}if(o.ponytail){const pt=B(0.12,0.5,0.12,0x1a1a1a);pt.position.set(0,headY-0.1,-headR-0.05);grp.add(pt);}if(o.sanggul){const sg=SP(0.14,0x1a1a1a);sg.position.set(0,headY+headR*0.9,0);grp.add(sg);}if(o.goggles){const gg=B(0.4,0.14,0.1,0x11181d,{emissive:TEAL,emissiveIntensity:0.6});gg.position.set(0,headY+0.08,headR-0.02);grp.add(gg);}if(o.glasses){const gl=B(0.42,0.12,0.06,DARK);gl.position.set(0,headY+0.05,headR+0.02);grp.add(gl);}if(o.scar){const sc=B(0.04,0.2,0.02,0xd21f1f);sc.position.set(0.1,headY+0.02,headR+0.01);sc.rotation.z=0.4;grp.add(sc);}if(o.implant){const im=B(0.1,0.1,0.06,TEAL,{emissive:TEAL,emissiveIntensity:1.4});im.position.set(-0.18,headY+0.05,headR*0.7);grp.add(im);}if(o.smg){const gun=B(0.7,0.12,0.12,DARK);gun.position.set(0.45,legH+0.4,0.15);gun.rotation.z=-0.3;grp.add(gun);}if(o.wrench){const wr=B(0.5,0.08,0.08,0xcccccc);wr.position.set(0.4,legH+0.3,0.15);wr.rotation.z=0.6;grp.add(wr);}if(o.patch){const pa=B(0.2,0.14,0.02,0xd21f1f);pa.position.set(-0.15,legH+torsoH-0.15,0.17);grp.add(pa);}if(o.bald){}grp.scale.setScalar(s);return fin(grp,o.name||'Figure',[0.8*s,1.9*s,0.5*s]);}export function makePed(style){switch(style){case'batik':return figure({batiki:true,pants:0x3a2a1a,name:'PedBatik'});case'kebaya':return figure({jacket:0xe11d48,skirt:0xe11d48,sanggul:true,name:'PedKebaya'});case'kid':return figure({scale:0.65,jacket:0xffb300,cap:0x1d4ed8,name:'PedKid'});case'street':default:return figure({jacket:0x475569,cap:0x1a1a1a,pack:0x374151,name:'PedStreet'});}}export function makeWowo(){return figure({jacket:GOLD,trim:TEAL,helmet:GOLD,name:'Wowo'});}export function makeMara(){return figure({jacket:TEAL,glasses:true,ponytail:true,name:'Mara'});}export function makeRiko(){return figure({jacket:0x8a6d3b,goggles:true,wrench:true,name:'Riko'});}export function makeKiko(){return figure({jacket:0x374151,smg:true,patch:true,name:'Kiko'});}export function makeRazor(){return figure({scale:1.15,bulk:true,bald:true,scar:true,implant:true,jacket:0xd8d8d8,name:'Razor'});}export{batikParang,batikMega,brickTex,stripeTex,textTex,WIN};export function SignOffice(opts={}){return fin(poleSign('KANTOR',DARK,GOLD,4,1.6,4),'SignOffice',[4,5.6,1]);}export function SignNPD(opts={}){return fin(poleSign('NPD',0xc8102e,0xffffff,4,1.6,4),'SignNPD',[4,5.6,1]);}export const makeOfficeTower=OfficeTower;export const makeShophouse=Shophouse;export const makeMall=Mall;export const makeMarketHall=MarketHall;export const makeMarketStall=MarketStall;export const makeHouse=House;export const makeTemple=Temple;export const makeWarehouse=Warehouse;export const makeHotel=Hotel;export const makeGapura=Gapura;export const makeSpireTower=SpireTower;export const makeClockTower=ClockTower;export const makeBillboardPylon=BillboardPylon;export const makeBillboardPole=BillboardPole;export const makePalm=Palm;export const makeShadeTree=ShadeTree;export const makeGardenTree=GardenTree;export const makeSignBatik=SignBatik;export const makeSignGarage=SignGarage;export const makeSignSafehouse=SignSafehouse;export const makeSignMarket=SignMarket;export const makeSignOffice=SignOffice;export const makeSignNPD=SignNPD;export const makeStreetLamp=StreetLamp;export const makeTrafficLight=TrafficLight;export const makeBench=Bench;export const makePlanter=Planter;export const makeFountain=Fountain;export const makeBusStop=BusStop;export const makeKiosk=Kiosk;export const makeFlagPole=FlagPole;
+// assets3d.js — procedural 3D asset library. Every builder here is used by at
+// least one place in the game (city / vehicles / traffic / combat / shots).
+import * as THREE from '../vendor/three.module.min.js';
+
+const matCache = new Map();
+export function mat(color, emissive = 0, ei = 0) {
+  const k = color + '|' + emissive + '|' + ei;
+  if (!matCache.has(k)) matCache.set(k, new THREE.MeshLambertMaterial({ color, emissive, emissiveIntensity: ei }));
+  return matCache.get(k);
+}
+const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+export function box(w, h, d, color, x = 0, y = 0, z = 0, em = 0, ei = 0) {
+  const m = new THREE.Mesh(boxGeo, mat(color, em, ei));
+  m.scale.set(w, h, d); m.position.set(x, y, z);
+  return m;
+}
+function grp(...children) { const g = new THREE.Group(); for (const c of children) g.add(c); return g; }
+
+// ---- vehicles (hover: no wheels, glow strip under the hull) ----
+function hoverCar(body, accent, glow) {
+  const g = grp(
+    box(4.4, 0.9, 2.1, body, 0, 0.85, 0),
+    box(2.4, 0.7, 1.8, 0x1a2028, -0.2, 1.6, 0),
+    box(4.5, 0.14, 2.2, accent, 0, 0.42, 0, accent, 0.9),
+    box(1.2, 0.5, 2.0, accent, -1.9, 1.1, 0),
+    box(4.0, 0.1, 1.9, glow, 0, 0.32, 0, glow, 1.4),
+  );
+  g.userData.glow = glow;
+  return g;
+}
+export function makeGarudaGT() {
+  const g = hoverCar(0xffd700, 0x1abc9c, 0x1abc9c);
+  // Garuda wing panels swept back from the rear quarters.
+  const wL = box(1.6, 0.1, 0.7, 0xffd700, -1.9, 1.35, 1.15); wL.rotation.z = 0.35;
+  const wR = box(1.6, 0.1, 0.7, 0xffd700, -1.9, 1.35, -1.15); wR.rotation.z = 0.35;
+  const beak = box(0.5, 0.3, 1.2, 0x1abc9c, 2.2, 0.9, 0);
+  g.add(wL, wR, beak);
+  return g;
+}
+export function makeKomodoR() {
+  const g = hoverCar(0xb8bec8, 0xc0392b, 0xc0392b);
+  g.add(box(0.3, 0.6, 1.6, 0xc0392b, 2.25, 0.85, 0));
+  for (let i = -2; i <= 2; i += 1) g.add(box(0.12, 0.22, 0.16, 0xffffff, 2.42, 0.95, i * 0.3));
+  return g;
+}
+export function makeViperCar() { return hoverCar(0x14161c, 0xc0392b, 0xff2222); }
+export function makeNpdCar() {
+  const g = hoverCar(0xf2f2f2, 0x2563eb, 0x2563eb);
+  g.add(box(1.1, 0.22, 0.5, 0xff2222, -0.2, 2.05, 0.55, 0xff2222, 1.2));
+  g.add(box(1.1, 0.22, 0.5, 0x2563eb, -0.2, 2.05, -0.55, 0x2563eb, 1.2));
+  g.add(box(2.6, 0.16, 0.2, 0xffd700, 0, 1.35, 1.06));
+  return g;
+}
+export function makeTaxi() {
+  const g = hoverCar(0xffc400, 0x111111, 0xffc400);
+  g.add(box(0.9, 0.35, 0.6, 0x111111, -0.2, 2.1, 0, 0xffc400, 0.8));
+  return g;
+}
+export function makeAngkot() {
+  const g = grp(
+    box(4.6, 1.7, 2.2, 0x1abc9c, 0, 1.15, 0),
+    box(2.0, 0.9, 2.0, 0x1a2028, 0.4, 2.3, 0),
+    box(4.7, 0.16, 2.3, 0xff4fa3, 0, 0.35, 0, 0xff4fa3, 1.0),
+    box(4.6, 0.5, 0.3, 0xffd700, 0, 1.5, 1.12),
+  );
+  return g;
+}
+export function makeTruck() {
+  return grp(
+    box(2.2, 2.0, 2.4, 0x5a6b52, 2.6, 1.5, 0),
+    box(2.0, 1.4, 2.2, 0x1a2028, 2.6, 2.9, 0),
+    box(5.4, 2.4, 2.5, 0x8a94a0, -1.4, 1.7, 0),
+    box(5.5, 0.2, 2.6, 0xffd700, -1.4, 0.45, 0, 0xffd700, 0.7),
+  );
+}
+export function makeBike() {
+  return grp(
+    box(2.4, 0.35, 0.5, 0x1abc9c, 0, 0.8, 0),
+    box(0.9, 0.6, 0.4, 0xff4fa3, -0.5, 1.1, 0),
+    box(0.7, 0.12, 1.1, 0x222222, 1.0, 1.05, 0),
+  );
+}
+
+// ---- people ----
+export function makePerson(shirt, pants, skin = 0xd9a066, helmet = 0) {
+  const g = grp(
+    box(0.62, 0.75, 0.36, shirt, 0, 1.15, 0),
+    box(0.56, 0.75, 0.32, pants, 0, 0.38, 0),
+    box(0.42, 0.42, 0.4, skin, 0, 1.75, 0),
+    box(0.14, 0.6, 0.14, shirt, -0.4, 1.15, 0),
+    box(0.14, 0.6, 0.14, shirt, 0.4, 1.15, 0),
+  );
+  if (helmet) g.add(box(0.48, 0.3, 0.46, helmet, 0, 1.95, 0));
+  return g;
+}
+export function makeWowo() { const g = makePerson(0xffd700, 0x1a2028, 0xd9a066, 0xffd700); g.add(box(0.66, 0.1, 0.4, 0x1abc9c, 0, 1.35, 0)); return g; }
+export function makeMara() { return makePerson(0x1abc9c, 0x222831); }
+export function makeRiko() { return makePerson(0x8a6d3b, 0x333333); }
+export function makeKiko() { return makePerson(0x2b3a55, 0x1a1a1a); }
+export function makeRazor() { const g = makePerson(0x14161c, 0x14161c, 0xc9a06a, 0xc0392b); g.add(box(0.2, 0.35, 0.2, 0xc0392b, -0.2, 2.15, 0)); g.add(box(0.2, 0.35, 0.2, 0xc0392b, 0.2, 2.15, 0)); return g; }
+
+// ---- buildings ----
+export function makeBuilding(w, h, d, color, accent) {
+  const g = grp(box(w, h, d, color, 0, h / 2, 0));
+  g.add(box(w * 1.04, 0.5, d * 1.04, accent || 0x222831, 0, h + 0.2, 0));
+  if (h > 14) g.add(box(w * 0.5, 0.7, d * 0.5, 0xffd700, 0, h + 0.7, 0, 0xffd700, 0.6));
+  // window band (one emissive strip reads as lit floors from afar)
+  g.add(box(w * 0.9, Math.max(0.4, h * 0.08), 0.1, 0xffe9a8, 0, h * 0.72, d / 2 + 0.05, 0xffe9a8, 0.7));
+  return g;
+}
+export function makeStall(a, b) {
+  return grp(
+    box(3.2, 1.0, 2.0, 0x8a6d3b, 0, 0.5, 0),
+    box(3.4, 0.18, 2.4, a, 0, 2.1, 0),
+    box(0.12, 1.1, 0.12, 0x555555, -1.5, 1.55, -1.0), box(0.12, 1.1, 0.12, 0x555555, 1.5, 1.55, -1.0),
+    box(0.12, 1.1, 0.12, 0x555555, -1.5, 1.55, 1.0), box(0.12, 1.1, 0.12, 0x555555, 1.5, 1.55, 1.0),
+    box(0.7, 0.4, 0.5, 0xff4fa3, -0.8, 1.2, 0), box(0.7, 0.4, 0.5, 0xffb300, 0.1, 1.2, 0), box(0.7, 0.4, 0.5, 0x27ae60, 0.9, 1.2, 0),
+  );
+}
+
+// ---- landmarks ----
+export function makeGapura(pillar = 0xc0392b) {
+  return grp(
+    box(2.2, 12, 2.2, pillar, -11.5, 6, 0), box(2.2, 12, 2.2, pillar, 11.5, 6, 0),
+    box(26, 1.6, 2.6, 0xffd700, 0, 12.4, 0),
+    box(20, 1.2, 2.2, pillar, 0, 13.8, 0), box(12, 1.0, 1.8, 0xffd700, 0, 15.0, 0),
+    box(1.2, 1.2, 1.2, 0xffb300, -11.5, 12.6, 1.4, 0xffb300, 1.0), box(1.2, 1.2, 1.2, 0xffb300, 11.5, 12.6, 1.4, 0xffb300, 1.0),
+  );
+}
+export function makeSpire() {
+  const g = grp(
+    box(16, 30, 16, 0xd4af37, 0, 15, 0),
+    box(12, 10, 12, 0x2b3a55, 0, 35, 0),
+    box(8, 6, 8, 0xffd700, 0, 43, 0, 0xffd700, 0.8),
+  );
+  const tip = new THREE.Mesh(new THREE.ConeGeometry(3.2, 8, 4), mat(0xffd700, 0xffd700, 0.9));
+  tip.position.set(0, 50, 0); tip.rotation.y = Math.PI / 4; g.add(tip);
+  g.add(box(16.4, 0.8, 0.3, 0xffe9a8, 0, 22, 8.1, 0xffe9a8, 0.8));
+  return g;
+}
+export function makeCandi() {
+  const g = new THREE.Group();
+  const steps = [[26, 3], [21, 3], [16, 3], [11, 3], [6, 4]];
+  let y = 0;
+  for (const [s, h] of steps) { g.add(box(s, h, s, 0x9a8f7a, 0, y + h / 2, 0)); y += h; }
+  const stupa = new THREE.Mesh(new THREE.ConeGeometry(2.2, 4.5, 8), mat(0x1abc9c));
+  stupa.position.set(0, y + 2.2, 0); g.add(stupa);
+  g.add(box(27, 0.5, 27, 0x27ae60, 0, 0.25, 0));
+  return g;
+}
+export function makeClockTower() {
+  const g = grp(box(5, 22, 5, 0xffb300, 0, 11, 0), box(7, 7, 1.2, 0xf5f0dc, 0, 20, 2.2), box(7, 1.2, 7, 0xc0392b, 0, 24, 0));
+  g.add(box(0.2, 2.2, 0.1, 0x222222, 0, 20.8, 2.85), box(1.6, 0.2, 0.1, 0x222222, 0.5, 20, 2.85));
+  return g;
+}
+export function makeControlTower() {
+  const g = grp();
+  const shaft = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.2, 24, 8), mat(0x3498db));
+  shaft.position.set(0, 12, 0); g.add(shaft);
+  const top = new THREE.Mesh(new THREE.CylinderGeometry(5.5, 4.0, 4, 8), mat(0x1a2a44, 0x3498db, 0.5));
+  top.position.set(0, 26, 0); g.add(top);
+  return g;
+}
+export function makeGiantTree() {
+  const g = grp();
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 3.4, 12, 8), mat(0x6b4a2b));
+  trunk.position.set(0, 6, 0); g.add(trunk);
+  for (const [x, y, z, r] of [[0, 16, 0, 7], [5, 13, 2, 5], [-5, 13, -2, 5], [0, 20, 0, 5]]) {
+    const s = new THREE.Mesh(new THREE.SphereGeometry(r, 10, 8), mat(0x27ae60));
+    s.position.set(x, y, z); g.add(s);
+  }
+  for (let i = 0; i < 4; i += 1) g.add(box(0.25, 4, 0.25, 0x1abc9c, Math.cos(i * 1.7) * 5, 11, Math.sin(i * 1.7) * 5));
+  return g;
+}
+export function makePalm() {
+  const g = grp();
+  for (let i = 0; i < 5; i += 1) g.add(box(0.5, 1.4, 0.5, 0x6b4a2b, i * 0.25, 0.7 + i * 1.3, 0));
+  const topY = 7;
+  for (let i = 0; i < 7; i += 1) {
+    const leaf = box(4.2, 0.12, 0.7, 0x27ae60, 2.1, topY, 0);
+    leaf.position.set(0, topY, 0); leaf.rotation.y = (i / 7) * Math.PI * 2; leaf.translateX(2.1); leaf.rotation.z = -0.35;
+    g.add(leaf);
+  }
+  return g;
+}
+export function makeLamp() {
+  return grp(box(0.22, 6, 0.22, 0x333a44, 0, 3, 0), box(1.6, 0.18, 0.18, 0x333a44, 0.7, 5.9, 0),
+    box(0.7, 0.25, 0.4, 0xfff2cc, 1.4, 5.8, 0, 0xfff2cc, 1.2));
+}
+export function makeTrafficLight() {
+  return grp(box(0.25, 5.5, 0.25, 0x222831, 0, 2.75, 0),
+    box(0.7, 1.8, 0.5, 0x111111, 0, 5.6, 0),
+    box(0.4, 0.4, 0.1, 0xff2222, 0, 6.1, 0.28, 0xff2222, 1.0),
+    box(0.4, 0.4, 0.1, 0xffb300, 0, 5.6, 0.28, 0xffb300, 0.6),
+    box(0.4, 0.4, 0.1, 0x27ae60, 0, 5.1, 0.28, 0x27ae60, 0.6));
+}
+export function makeBatikHolo() {
+  const g = grp();
+  const o = new THREE.Mesh(new THREE.OctahedronGeometry(0.9), mat(0xffd700, 0xffd700, 1.0));
+  g.add(o);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(1.3, 0.08, 6, 24), mat(0x1abc9c, 0x1abc9c, 0.8));
+  ring.rotation.x = Math.PI / 2; g.add(ring);
+  return g;
+}
+export function makeSign(text, bg = '#0d2b33', fg = '#ffd700', w = 10, h = 3) {
+  const c = document.createElement('canvas'); c.width = 256; c.height = 80;
+  const x = c.getContext('2d');
+  x.fillStyle = bg; x.fillRect(0, 0, 256, 80);
+  x.strokeStyle = fg; x.lineWidth = 4; x.strokeRect(4, 4, 248, 72);
+  x.fillStyle = fg; x.font = 'bold 34px system-ui, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text, 128, 42);
+  const tex = new THREE.CanvasTexture(c);
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: tex }));
+  return m;
+}
+export function makeFlame() {
+  const g = grp();
+  const outer = new THREE.Mesh(new THREE.ConeGeometry(1.1, 2.6, 8), mat(0xff6a00, 0xff6a00, 1.0));
+  outer.position.y = 1.3; g.add(outer);
+  const inner = new THREE.Mesh(new THREE.ConeGeometry(0.6, 1.6, 8), mat(0xffd700, 0xffd700, 1.2));
+  inner.position.y = 1.0; g.add(inner);
+  return g;
+}
+export function makeSmokePuff() {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(1.6, 8, 6),
+    new THREE.MeshLambertMaterial({ color: 0x555555, transparent: true, opacity: 0.55 }));
+  return m;
+}
+export function makeViewmodelRifle() {
+  return grp(
+    box(1.5, 0.22, 0.22, 0xffd700, 0, 0, 0),
+    box(0.5, 0.3, 0.3, 0x1abc9c, -0.55, 0.05, 0),
+    box(0.25, 0.5, 0.2, 0x333333, 0.1, -0.3, 0),
+    box(0.3, 0.12, 0.12, 0x111111, 0.85, 0.05, 0),
+    box(0.7, 0.1, 0.5, 0x8a6d3b, -0.15, -0.05, 0),
+  );
+}
+export function makeConfettiPiece(color) {
+  return new THREE.Mesh(new THREE.PlaneGeometry(0.35, 0.5), new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide }));
+}

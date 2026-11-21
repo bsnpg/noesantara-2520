@@ -1,1 +1,155 @@
-import*as THREE from'../vendor/three.module.min.js';import*as A from'./assets3d.js';import{createRandom}from'./random.js';const DISTRICTS=[{name:'Distrik Neon',colour:0xff4fa3,accent:0x2de1c2,centre:[-230,-200],faction:'Wolves',landmark:'Gapura Neon',missions:[0,2,3,6]},{name:'Pasar Nusantara',colour:0xffb020,accent:0xff7a1a,centre:[230,-200],faction:'Neutral',landmark:'Gapura Pasar + Menara Jam',missions:[]},{name:'Undercity',colour:0xb03a2e,accent:0x3a3f4a,centre:[-230,200],faction:'Vipers',landmark:'Gerbang Undercity',missions:[1,4,5]},{name:'Spire',colour:0xf2c94c,accent:0xffffff,centre:[0,0],faction:'Syndicate',landmark:'Menara Spire',missions:[7]},{name:'Distrik Candi',colour:0x2fae8f,accent:0x7ed957,centre:[230,200],faction:'Neutral',landmark:'Candi Agung',missions:[]},{name:'Skyport',colour:0x3a7bd5,accent:0x9fd8ff,centre:[-230,0],faction:'Wolves',landmark:'Menara Kontrol',missions:[]},{name:'Taman Gantung',colour:0x4caf50,accent:0xffd27a,centre:[230,0],faction:'Neutral',landmark:'Pohon Raksasa',missions:[]},];const HALF=360;const NS_AV=[-230,0,230],EW_AV=[-200,0,200];const NS_CN=[-115,115],EW_CN=[-100,100];const RINGX=320,RINGZ=300;const ALLEY_NS=[{at:-280,a:-300,b:300},{at:280,a:-300,b:300},{at:50,a:-100,b:100},];const ALLEY_EW=[{at:-150,a:-320,b:-115},{at:-150,a:115,b:320},{at:150,a:-320,b:-115},{at:150,a:115,b:320},{at:-50,a:-320,b:-115},{at:50,a:-115,b:115},{at:50,a:115,b:320},];const CLEAR=[[-170,-140],[-140,120],[-160,230],[-190,-170],[-180,200],[-120,230],[-200,-30],[0,0],[-190,-120],[230,-160],[-200,0],[230,0]];const treePick=(i)=>[A.makePalm,A.makeShadeTree,A.makeGardenTree][i%3]();const ROWS={PK:[A.makeOfficeTower,13.5,13.5,2],PP:[A.makeShophouse,9,9,1.5],WH:[A.makeWarehouse,14.6,10.6,2],PS:[A.makeShophouse,9,9,1.5],PR:[A.makeHouse,7.4,7,1.5],HT:[A.makeHotel,13,11,2],TM:[treePick,4.6,4.6,2],};const BLOCKS=[[-313,-293,-241,-211,'PP',1],[-219,-293,-121,-211,'PK',1],[-313,-189,-241,-106,'PR',1],[-219,-189,-121,-106,'PP',1],[121,-293,219,-211,'PS',1],[241,-293,313,-211,'PS',1],[121,-189,219,-106,'PS',1],[241,-189,313,-106,'PP',1],[-313,106,-241,189,'PR',1],[-219,106,-121,189,'PS',1],[-313,211,-241,293,'PR',1],[-219,211,-121,293,'WH',1],[-109,-94,-11,-11,'PK',1.25],[11,-94,109,-11,'PK',1],[-109,11,-11,94,'HT',1],[11,11,109,94,'TM',1],[121,106,219,189,'TM',1],[241,106,313,189,'TM',1],[121,211,219,293,'TM',1],[241,211,313,293,'PP',1],[-313,-94,-241,-11,'PK',1],[-219,-94,-121,-11,'PK',1],[-313,11,-241,94,'WH',1],[-219,11,-121,94,'WH',1],[121,-94,219,-11,'TM',1],[241,-94,313,-11,'HT',1],[121,11,219,94,'TM',1],[241,11,313,94,'PR',1],[-109,-293,-11,-211,'PK',1],[11,-293,109,-211,'PK',1],[-109,-189,-11,-106,'PP',1],[11,-189,109,-106,'PP',1],[-109,106,-11,189,'PR',1],[11,106,109,189,'PR',1],[-109,211,-11,293,'PP',1],[11,211,109,293,'PP',1],];const FEATURES=[[A.makeSpireTower,0,0,0,1,7,7],[A.makeClockTower,170,-252,0,1,3,3],[A.makeTemple,170,148,0,1,7,7],[A.makeMall,-297,-252,Math.PI/2,1,8,11],[A.makeMarketHall,252,-250,0,1,9,7],[A.makeGapura,-230,-260,0,2.2,16,3],[A.makeGapura,230,-260,0,2.2,16,3],[A.makeGapura,-230,260,0,2.2,16,3],[A.makeGapura,230,260,0,2.2,16,3],[A.makeSignMarket,170,-222,0,1,5,1],[A.makeSignOffice,-57,-25,0,1,4,1],[A.makeSignNPD,-40,-80,0,1,4,1],[A.makeSignGarage,-172,85,Math.PI,1,4,1],[A.makeBillboardPylon,60,50,0,1,5,2],[A.makeBillboardPole,-150,-180,0,1,3,1],[A.makeBillboardPole,150,-180,0,1,3,1],[A.makeFountain,40,70,0,1,3,3],[A.makeGardenTree,170,-50,0,2.2,5,5],[A.makeBusStop,-216,-150,-Math.PI/2,1,2,2],[A.makeBusStop,216,150,Math.PI/2,1,2,2],[A.makeBusStop,-216,150,-Math.PI/2,1,2,2],[A.makeBusStop,216,-150,Math.PI/2,1,2,2],[A.makeFlagPole,25,25,0,1,1,1],[A.makeFlagPole,150,-240,0,1,1,1],[A.makeFlagPole,150,130,0,1,1,1],[A.makeKomodoR,-190,185,Math.PI/2,1,3,2],[A.makeGajahTruck,-200,60,Math.PI/2,1,4,2],[A.makeCapungBike,-250,-140,0,1,2,1],[A.makeViper,-200,212,Math.PI/2,1,3,2],[A.makeViper,-160,190,0,1,3,2],];export function initCity(G){if(!G||!G.scene)return;const T=G.THREE||THREE;const rng=G.rng||createRandom(G.seed||2520);const scene=G.scene;const cityG=new T.Group();const placed=[];const blocked=(x,z,hw,hd)=>{for(const r of placed)if(Math.abs(x-r[0])<hw+r[2]+1&&Math.abs(z-r[1])<hd+r[3]+1)return true;return false;};const put=(mk,x,z,ry,s,hw,hd)=>{const g=mk();g.position.set(x,0,z);if(ry)g.rotation.y=ry;if(s&&s!==1)g.scale.setScalar(s);cityG.add(g);placed.push([x,z,hw,hd]);return g;};const clearOf=(x,z,hw,hd)=>{for(const c of CLEAR)if(Math.abs(x-c[0])<hw+8&&Math.abs(z-c[1])<hd+8)return false;return true;};const rowH=(z,xA,xB,ry,spec,sc)=>{const mk=spec[0],fw=spec[1]*sc,fd=spec[2]*sc,step=fw+spec[3];const n=Math.max(0,Math.floor((xB-xA)/step));let x=(xA+xB)/2-(n-1)*step/2;for(let k=0;k<n;k++,x+=step)if(!blocked(x,z,fw/2,fd/2)&&clearOf(x,z,fw/2,fd/2))put(()=>mk(k),x,z,ry,sc,fw/2,fd/2);};const rowV=(x,zA,zB,ry,spec,sc)=>{const mk=spec[0],fw=spec[1]*sc,fd=spec[2]*sc,step=fw+spec[3];const n=Math.max(0,Math.floor((zB-zA)/step));let z=(zA+zB)/2-(n-1)*step/2;for(let k=0;k<n;k++,z+=step)if(!blocked(x,z,fd/2,fw/2)&&clearOf(x,z,fd/2,fw/2))put(()=>mk(k),x,z,ry,sc,fd/2,fw/2);};const nearAlley=(x,z,fd)=>{const c=2.5+3+fd+2;for(const s of ALLEY_NS)if(s.a<z&&z<s.b&&Math.abs(x-s.at)<c)return true;for(const s of ALLEY_EW)if(s.a<x&&x<s.b&&Math.abs(z-s.at)<c)return true;return false;};const nearClear=(x,z)=>{for(const c of CLEAR){const dx=x-c[0],dz=z-c[1];if(dx*dx+dz*dz<144)return true;}return false;};const ground=new T.Mesh(new T.PlaneGeometry(HALF*2+40,HALF*2+40),new T.MeshStandardMaterial({color:0xb0a892,roughness:1}));ground.rotation.x=-Math.PI/2;cityG.add(ground);const lawnMat=new T.MeshStandardMaterial({color:0x4a9e57,roughness:1});const plazaMat=new T.MeshStandardMaterial({color:0xdbca9e,roughness:1});for(const b of BLOCKS){const zone=b[4];if(zone!=='TM'&&zone!=='PS'&&!(b[0]===11&&b[1]===11))continue;const w=b[2]-b[0],d=b[3]-b[1];const m=new T.Mesh(new T.PlaneGeometry(w,d),zone==='TM'?lawnMat:plazaMat);m.rotation.x=-Math.PI/2;m.position.set((b[0]+b[2])/2,0.05,(b[1]+b[3])/2);cityG.add(m);}const roadMat=new T.MeshStandardMaterial({color:0x333845,roughness:0.9});const alleyMat=new T.MeshStandardMaterial({color:0x9a8f7a,roughness:1});const glowGold=new T.MeshBasicMaterial({color:0xf2c94c});const road=(w,d,x,z,m)=>{const mesh=new T.Mesh(new T.BoxGeometry(w,0.2,d),m||roadMat);mesh.position.set(x,0.1,z);cityG.add(mesh);return mesh;};for(const x of NS_AV){road(22,HALF*2,x,0);const l=new T.Mesh(new T.BoxGeometry(0.6,0.25,HALF*2),glowGold);l.position.set(x,0.12,0);cityG.add(l);}for(const z of EW_AV){road(HALF*2,22,0,z);const l=new T.Mesh(new T.BoxGeometry(HALF*2,0.25,0.6),glowGold);l.position.set(0,0.12,z);cityG.add(l);}for(const x of NS_CN)road(12,HALF*2,x,0);for(const z of EW_CN)road(HALF*2,12,0,z);road(14,HALF*2+28,-RINGX,0);road(14,HALF*2+28,RINGX,0);road(HALF*2+28,14,0,-RINGZ);road(HALF*2+28,14,0,RINGZ);for(const s of ALLEY_NS)road(5,s.b-s.a,s.at,(s.a+s.b)/2,alleyMat);for(const s of ALLEY_EW)road(s.b-s.a,5,(s.a+s.b)/2,s.at,alleyMat);for(const f of FEATURES)put(f[0],f[1],f[2],f[3],f[4],f[5],f[6]);const SW=3;const fillBlock=(b)=>{const x0=b[0],z0=b[1],x1=b[2],z1=b[3],spec=ROWS[b[4]],sc=b[5];const fd=spec[2]*sc,M=fd+4;rowH(z0+SW+fd/2,x0+M,x1-M,Math.PI,spec,sc);rowH(z1-SW-fd/2,x0+M,x1-M,0,spec,sc);rowV(x0+SW+fd/2,z0+M,z1-M,-Math.PI/2,spec,sc);rowV(x1-SW-fd/2,z0+M,z1-M,Math.PI/2,spec,sc);for(const s of ALLEY_NS){if(s.at<=x0||s.at>=x1||s.b<=z0||s.a>=z1)continue;const za=Math.max(z0,s.a)+M,zb=Math.min(z1,s.b)-M;rowV(s.at-2.5-SW-fd/2,za,zb,Math.PI/2,spec,sc);rowV(s.at+2.5+SW+fd/2,za,zb,-Math.PI/2,spec,sc);}for(const s of ALLEY_EW){if(s.at<=z0||s.at>=z1||s.b<=x0||s.a>=x1)continue;const xa=Math.max(x0,s.a)+M,xb=Math.min(x1,s.b)-M;rowH(s.at-2.5-SW-fd/2,xa,xb,0,spec,sc);rowH(s.at+2.5+SW+fd/2,xa,xb,Math.PI,spec,sc);}const ix0=x0+SW+fd,iz0=z0+SW+fd,ix1=x1-SW-fd,iz1=z1-SW-fd;const zone=b[4];if(ix1-ix0>=6&&iz1-iz0>=6){const n=zone==='PS'?10:zone==='TM'?6:4;for(let i=0;i<n;i++){const px=ix0+2+rng()*(ix1-ix0-4),pz=iz0+2+rng()*(iz1-iz0-4);if(nearAlley(px,pz,fd)||nearClear(px,pz))continue;if(zone==='PS'){if(!blocked(px,pz,1.8,1.4))put(A.makeMarketStall,px,pz,(i%2)*Math.PI/2,1,1.8,1.4);}else if(zone==='TM'){if(!blocked(px,pz,2.4,2.4))put(()=>treePick(i),px,pz,0,1,2.4,2.4);}else if(i%3===0){if(!blocked(px,pz,1.6,1.2))put(A.makeKiosk,px,pz,rng()*3.14,1,1.6,1.2);}else if(i%3===1){if(!blocked(px,pz,1,0.4))put(A.makeBench,px,pz,rng()*3.14,1,1,0.4);}else if(!blocked(px,pz,0.8,0.8))put(A.makePlanter,px,pz,0,1,0.8,0.8);}}};for(const b of BLOCKS)fillBlock(b);for(const x of NS_AV)for(let z=-330;z<=330;z+=60)put(A.makeStreetLamp,x+13,z,0,1,1,0.5);for(const z of EW_AV)for(let x=-330;x<=330;x+=60)put(A.makeStreetLamp,x,z+13,Math.PI,1,1,0.5);for(const x of NS_AV)for(const z of EW_AV){if(x===0&&z===0)continue;put(A.makeTrafficLight,x+14,z+14,Math.PI,1,1,1);}mergeGroup(cityG,scene,T);G.districts=DISTRICTS.map((d)=>({name:d.name,colour:d.colour,accent:d.accent,centre:{x:d.centre[0],z:d.centre[1]},faction:d.faction,landmark:d.landmark,missions:d.missions.slice(),}));G.city={half:HALF,nsAvenues:NS_AV.slice(),ewAvenues:EW_AV.slice(),nsConnectors:NS_CN.slice(),ewConnectors:EW_CN.slice(),ring:{x:RINGX,z:RINGZ},spire:{x:0,z:0}};}function mergeGroup(group,scene,T){group.updateMatrixWorld(true);const buckets=new Map();const nv=new T.Vector3();const nm=new T.Matrix3();group.traverse((o)=>{if(!o.isMesh)return;let geo=o.geometry;if(geo.index)geo=geo.toNonIndexed();const mats=Array.isArray(o.material)?o.material:[o.material];const groups=geo.groups.length?geo.groups:[{start:0,count:geo.attributes.position.count,materialIndex:0}];nm.getNormalMatrix(o.matrixWorld);const e=o.matrixWorld.elements,ne=nm.elements;const P=geo.attributes.position.array;const N=geo.attributes.normal?geo.attributes.normal.array:null;const U=geo.attributes.uv?geo.attributes.uv.array:null;for(const gr of groups){const mat=mats[gr.materialIndex]||mats[0];let bk=buckets.get(mat);if(!bk){bk={pos:[],nor:[],uv:[],idx:[],v:0};buckets.set(mat,bk);}for(let vi=gr.start;vi<gr.start+gr.count;vi++){const x=P[vi*3],y=P[vi*3+1],z=P[vi*3+2];bk.pos.push(e[0]*x+e[4]*y+e[8]*z+e[12],e[1]*x+e[5]*y+e[9]*z+e[13],e[2]*x+e[6]*y+e[10]*z+e[14]);if(N){const nx=N[vi*3],ny=N[vi*3+1],nz=N[vi*3+2];nv.set(ne[0]*nx+ne[3]*ny+ne[6]*nz,ne[1]*nx+ne[4]*ny+ne[7]*nz,ne[2]*nx+ne[5]*ny+ne[8]*nz).normalize();bk.nor.push(nv.x,nv.y,nv.z);}else bk.nor.push(0,1,0);if(U)bk.uv.push(U[vi*2],U[vi*2+1]);else bk.uv.push(0,0);bk.idx.push(bk.v++);}}o.geometry.dispose();});for(const[mat,bk]of buckets){const geo=new T.BufferGeometry();geo.setAttribute('position',new T.Float32BufferAttribute(bk.pos,3));geo.setAttribute('normal',new T.Float32BufferAttribute(bk.nor,3));geo.setAttribute('uv',new T.Float32BufferAttribute(bk.uv,2));geo.setIndex(bk.idx);scene.add(new T.Mesh(geo,mat));}}
+// city.js — builds Noesantara from the map plan: districts, hierarchical roads,
+// 28 zoned blocks + edge fillers, landmarks, lamps, traffic lights, collectibles.
+import * as THREE from '../vendor/three.module.min.js';
+import { DISTRICTS, ZONES, AVE_NS, AVE_EW, CON_NS, CON_EW, ALLEYS } from './config.js';
+import { range, int } from './random.js';
+import * as A from './assets3d.js';
+
+function plane(w, d, color, x, z, y = 0.02) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d), new THREE.MeshLambertMaterial({ color }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, y, z);
+  return m;
+}
+function zebraTexture() {
+  const c = document.createElement('canvas'); c.width = 64; c.height = 64;
+  const x = c.getContext('2d');
+  x.fillStyle = '#3a4048'; x.fillRect(0, 0, 64, 64);
+  x.fillStyle = '#f5f5f5';
+  for (let i = 0; i < 4; i += 1) x.fillRect(6 + i * 14, 4, 8, 56);
+  return new THREE.CanvasTexture(c);
+}
+const ZEBRA = zebraTexture();
+
+export function buildCity(ctx) {
+  const { scene, rng } = ctx;
+  const collectibles = [];
+  const add = (o) => scene.add(o);
+  // Ground: paved city base (trotoar/plaza tone, never bare brown dirt).
+  add(plane(660, 660, 0x9a9a86, 0, 0, 0));
+  // Park lawns in taman blocks + Spire plaza.
+  add(plane(150, 150, 0x5da24a, 187, -42, 0.03)); // Taman T1/T3
+  add(plane(150, 150, 0x5da24a, 187, 157, 0.03)); // Candi C1/C3
+  add(plane(120, 120, 0xc9b896, 42, 42, 0.03));   // Spire plaza S4
+  add(plane(120, 120, 0xc9b896, 187, -157, 0.03));// Pasar plaza P1
+  // Roads: avenues (22, gold centre line), connectors (12), ring (14), alleys (5).
+  const road = (w, d, x, z, line) => {
+    add(plane(w, d, 0x3a4048, x, z, 0.05));
+    if (line) add(plane(line === 'ns' ? 0.7 : w, line === 'ns' ? d : 0.7, 0xffd700, x, z, 0.08));
+  };
+  for (const x of AVE_NS) road(22, 640, x, 0, 'ns');
+  for (const z of AVE_EW) road(640, 22, 0, z, 'ew');
+  for (const x of CON_NS) road(12, 640, x, 0);
+  for (const z of CON_EW) road(640, 12, 0, z);
+  road(14, 640, -320, 0); road(14, 640, 320, 0); road(640, 14, 0, -300); road(640, 14, 0, 300);
+  for (const a of ALLEYS) {
+    add(plane(5, 170, 0x8a8f94, a.ns, DISTRICTS[a.d].cz, 0.06));
+    add(plane(170, 5, 0x8a8f94, DISTRICTS[a.d].cx, a.ew, 0.06));
+  }
+  // Zebra crossings at avenue intersections.
+  for (const x of AVE_NS) for (const z of AVE_EW) {
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(22, 10), new THREE.MeshBasicMaterial({ map: ZEBRA }));
+    m.rotation.x = -Math.PI / 2; m.position.set(x, z, 0.09); add(m);
+  }
+  // Traffic lights at every avenue intersection.
+  for (const x of AVE_NS) for (const z of AVE_EW) {
+    const t = A.makeTrafficLight(); t.position.set(x + 13, 0, z + 13); add(t);
+  }
+  // Street lamps along avenues every ~60.
+  for (const x of AVE_NS) for (let z = -290; z <= 290; z += 60) { const l = A.makeLamp(); l.position.set(x + 12, 0, z); add(l); }
+  for (const z of AVE_EW) for (let x = -310; x <= 310; x += 60) { const l = A.makeLamp(); l.position.set(x, 0, z + 12); add(l); }
+
+  // Blocks: 28 district blocks, buildings in rows facing the road at block edges.
+  const palette = [0x7a8a9a, 0x9a8a6a, 0x6a8a9a, 0xa89a7a, 0x8aa08a, 0x9a7a8a, 0xb09a6a, 0x7a90a0];
+  const blockRect = (d, q) => {
+    const ax = AVE_NS.reduce((a, b) => Math.abs(b - d.cx) < Math.abs(a - d.cx) ? b : a);
+    const az = AVE_EW.reduce((a, b) => Math.abs(b - d.cz) < Math.abs(a - d.cz) ? b : a);
+    const x0 = Math.max(-320, d.cx - d.r), x1 = Math.min(320, d.cx + d.r);
+    const z0 = Math.max(-300, d.cz - d.r), z1 = Math.min(300, d.cz + d.r);
+    const xs = q % 2 === 0 ? [x0, ax] : [ax, x1];
+    const zs = q < 2 ? [z0, az] : [az, z1];
+    return { x0: xs[0], x1: xs[1], z0: zs[0], z1: zs[1] };
+  };
+  DISTRICTS.forEach((d, di) => {
+    for (let q = 0; q < 4; q += 1) {
+      const r = blockRect(d, q);
+      const [zone, hMin, hMax] = ZONES[di][q];
+      const w = r.x1 - r.x0, dep = r.z1 - r.z0;
+      if (zone === 'TM') {
+        // Park: trees, palms, a small gazebo — no tall buildings.
+        for (let i = 0; i < 6; i += 1) {
+          const p = A.makePalm(); p.position.set(range(rng, r.x0 + 16, r.x1 - 16), 0, range(rng, r.z0 + 16, r.z1 - 16)); add(p);
+        }
+        if (hMax > 0) { const g = A.makeBuilding(8, 5, 8, 0x8a7a5a, 0x1abc9c); g.position.set((r.x0 + r.x1) / 2, 0, (r.z0 + r.z1) / 2); add(g); }
+        continue;
+      }
+      if (zone === 'PS') {
+        // Market: open stalls + low halls, busiest crowd zone.
+        for (let i = 0; i < 5; i += 1) {
+          const s = A.makeStall(i % 2 ? 0xff4fa3 : 0xffb300, 0x27ae60);
+          s.position.set(range(rng, r.x0 + 16, r.x1 - 16), 0, range(rng, r.z0 + 16, r.z1 - 16));
+          s.rotation.y = rng() * Math.PI; add(s);
+        }
+        const hall = A.makeBuilding(Math.min(24, w * 0.5), range(rng, hMin, hMax), Math.min(18, dep * 0.5), 0xb08a3a, 0xffb300);
+        hall.position.set((r.x0 + r.x1) / 2, 0, (r.z0 + r.z1) / 2); add(hall);
+        continue;
+      }
+      // PK / PP / PR: rows of buildings along the two road-facing edges.
+      // Rows sit 17 in from the block edge (avenue centreline) so no building
+      // ever stands on a road (avenue half-width 11 + building half-depth ~5).
+      const rows = [];
+      const step = 15;
+      for (let x = r.x0 + 19; x < r.x1 - 16; x += step) rows.push([x, r.z0 + 17, 0]);
+      for (let x = r.x0 + 19; x < r.x1 - 16; x += step) rows.push([x, r.z1 - 17, 0]);
+      for (let z = r.z0 + 19; z < r.z1 - 16; z += step) rows.push([r.x0 + 17, z, 1]);
+      for (let z = r.z0 + 19; z < r.z1 - 16; z += step) rows.push([r.x1 - 17, z, 1]);
+      for (const [x, z, rot] of rows) {
+        const h = range(rng, hMin, hMax);
+        const b = A.makeBuilding(rot ? 10 : 13, h, rot ? 13 : 10, palette[int(rng, 0, palette.length - 1)], 0x1abc9c);
+        b.position.set(x, 0, z); add(b);
+      }
+    }
+  });
+  // Edge filler blocks (8): low housing outside the district cores.
+  const fillers = [[-280, -260], [280, -260], [-280, 260], [280, 260], [0, -270], [0, 270], [-300, 0], [300, 0]];
+  for (const [fx, fz] of fillers) {
+    for (let i = 0; i < 3; i += 1) {
+      const b = A.makeBuilding(12, range(rng, 6, 12), 10, palette[int(rng, 0, palette.length - 1)], 0x27ae60);
+      b.position.set(fx + (i - 1) * 20, 0, fz + (i % 2 ? 8 : -8)); add(b);
+    }
+  }
+  // Landmarks. Gapura pillars stand just outside the avenue (pillars ±11.5,
+  // road half-width 11) and just off the crossing avenue, so they never block a road.
+  const gapuraN = A.makeGapura(0xc0392b); gapuraN.position.set(-230, 0, -214); add(gapuraN);
+  const gapuraP = A.makeGapura(0xffb300); gapuraP.position.set(230, 0, -214); add(gapuraP);
+  const gateU = A.makeGapura(0xc0392b); gateU.position.set(-230, 0, 214); add(gateU);
+  const spire = A.makeSpire(); spire.position.set(35, 0, 35); add(spire);
+  const hq = A.makeBuilding(20, 42, 20, 0x2b3a55, 0xffd700); hq.position.set(-42, 0, -42); add(hq);
+  const candi = A.makeCandi(); candi.position.set(187, 0, 157); add(candi);
+  const clock = A.makeClockTower(); clock.position.set(215, 0, -215); add(clock);
+  const ctrl = A.makeControlTower(); ctrl.position.set(-182, 0, -40); add(ctrl);
+  const tree = A.makeGiantTree(); tree.position.set(187, 0, -42); add(tree);
+  const signW = A.makeSign('NEON WOLVES HQ'); signW.position.set(-275, 9, -150); add(signW);
+  const signR = A.makeSign('BENGKEL RIKO', '#0d2b33', '#1abc9c'); signR.position.set(-182, 8, 40); add(signR);
+  const signS = A.makeSign('SPIRE', '#111111', '#ffd700', 12, 3.5); signS.position.set(-42, 12, -60); add(signS);
+  const bill = A.makeSign('NOESANTARA 2520', '#1a2a44', '#ff4fa3', 16, 5); bill.position.set(42, 14, 20); bill.rotation.y = Math.PI / 4; add(bill);
+
+  // Batik holograms: ~7 per district — in alleys, plazas, near landmarks.
+  DISTRICTS.forEach((d, di) => {
+    const a = ALLEYS.find((x) => x.d === di);
+    const spots = [
+      [a.ns, d.cz - 40], [a.ns, d.cz + 40], [d.cx - 40, a.ew], [d.cx + 40, a.ew],
+      [d.cx - 20, d.cz - 20], [d.cx + 30, d.cz + 25], [d.cx, d.cz - 55],
+    ];
+    for (const [x, z] of spots) {
+      const h = A.makeBatikHolo(); h.position.set(x, 2.2, z); add(h);
+      collectibles.push({ x, z, district: di, mesh: h, taken: false });
+    }
+  });
+  // One extra near Spire plaza to reach 50.
+  const extra = A.makeBatikHolo(); extra.position.set(60, 2.2, 60); add(extra);
+  collectibles.push({ x: 60, z: 60, district: 3, mesh: extra, taken: false });
+
+  ctx.collectibles = collectibles;
+  ctx.city = { gapuraN, spire, candi };
+  return ctx.city;
+}

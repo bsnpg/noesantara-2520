@@ -1,1 +1,51 @@
-import*as THREE from'../vendor/three.module.min.js';import{CONFIG}from'./config.js';export function initRender(G){const canvas=document.getElementById('game');const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio||1,2));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=false;const scene=new THREE.Scene();scene.fog=new THREE.Fog(0xbfd9e8,200,700);const camera=new THREE.PerspectiveCamera(62,innerWidth/innerHeight,0.1,1200);camera.position.set(0,30,60);scene.add(camera);const _tv1=new THREE.Vector3(),_tv2=new THREE.Vector3(),_up=new THREE.Vector3(0,1,0);const sunLight=new THREE.DirectionalLight(0xfff2d8,2.6);sunLight.position.set(120,180,60);scene.add(sunLight);const hemi=new THREE.HemisphereLight(0x9fd8f0,0x8a7a5a,1.2);scene.add(hemi);const envCv=document.createElement('canvas');envCv.width=64;envCv.height=32;const ex=envCv.getContext('2d');const eg=ex.createLinearGradient(0,0,0,32);eg.addColorStop(0,'#2e7fc9');eg.addColorStop(0.5,'#8ec8ee');eg.addColorStop(1,'#ffe9b8');ex.fillStyle=eg;ex.fillRect(0,0,64,32);ex.fillStyle='#ffd700';ex.fillRect(8,10,10,6);const envTex=new THREE.CanvasTexture(envCv);envTex.mapping=THREE.EquirectangularReflectionMapping;envTex.colorSpace=THREE.SRGBColorSpace;scene.environment=envTex;const sun=new THREE.Mesh(new THREE.SphereGeometry(9,16,12),new THREE.MeshBasicMaterial({color:0xffdf6b,fog:false}));const moon=new THREE.Mesh(new THREE.SphereGeometry(6,16,12),new THREE.MeshBasicMaterial({color:0xe8eef7,fog:false}));scene.add(sun,moon);const cv=document.createElement('canvas');cv.width=4;cv.height=256;const cx=cv.getContext('2d');const grad=cx.createLinearGradient(0,0,0,256);grad.addColorStop(0,'#1f6fc4');grad.addColorStop(0.45,'#5fb2ea');grad.addColorStop(0.7,'#a8dcf5');grad.addColorStop(0.85,'#e8f6ff');grad.addColorStop(1,'#ffe9b8');cx.fillStyle=grad;cx.fillRect(0,0,4,256);const skyTex=new THREE.CanvasTexture(cv);const sky=new THREE.Mesh(new THREE.SphereGeometry(900,24,16),new THREE.MeshBasicMaterial({map:skyTex,side:THREE.BackSide,fog:false}));scene.add(sky);function setTimeOfDay(h){G.timeOfDay=((h%24)+24)%24;const a=(G.timeOfDay/24)*Math.PI*2-Math.PI/2;const sx=Math.cos(a)*700,sy=Math.sin(a)*500+40;sun.position.set(sx,sy,-220);moon.position.set(-sx,-sy+80,220);const day=Math.max(0,Math.sin(a));const warm=1-Math.abs(G.timeOfDay-17)/6;sunLight.intensity=0.4+day*2.2;sunLight.color.setHSL(0.09+warm*0.02,0.6,0.6+day*0.12);hemi.intensity=0.5+day*0.8;scene.fog.color.setHSL(0.55,0.45,0.6+day*0.22);sky.material.color.setScalar(0.55+day*0.45);sun.visible=sy>-20;moon.visible=!sun.visible;}function updateCamera(dt){if(G.shotCam){camera.position.copy(G.shotCam.pos);camera.lookAt(G.shotCam.look);return;}if(G.fpsCam){camera.position.copy(G.fpsCam.pos);camera.rotation.set(G.fpsCam.pitch,G.fpsCam.yaw,0,'YXZ');return;}if(G.state!=='title')return;camera.position.set(-250,8,0);camera.lookAt(0,10,150);if(G.titleWowo){camera.getWorldDirection(_tv1);_tv2.crossVectors(_tv1,_up).normalize();G.titleWowo.position.copy(camera.position).addScaledVector(_tv1,15).addScaledVector(_tv2,9);G.titleWowo.position.y=0;G.titleWowo.lookAt(camera.position.x,0,camera.position.z);}}addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});G.THREE=THREE;G.scene=scene;G.camera=camera;G.renderer=renderer;G.sun=sun;G.moon=moon;G.sunLight=sunLight;G.hemi=hemi;G.setTimeOfDay=setTimeOfDay;G.updateCamera=updateCamera;setTimeOfDay(CONFIG.startHour);}
+// Renderer: three.js setup, blue daytime sky, sun, fog, camera helpers.
+import * as THREE from '../vendor/three.module.min.js';
+import { COLORS } from './config.js';
+
+export function createRenderer(canvas) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 1.5));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = false;
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.Fog(COLORS.fog, 260, 620);
+  // Sky dome: vertical blue gradient (bright day, warm sun — never beige dusk).
+  const skyGeo = new THREE.SphereGeometry(900, 24, 12);
+  const top = new THREE.Color(COLORS.skyTop), bot = new THREE.Color(COLORS.skyBot);
+  const pos = skyGeo.attributes.position, cols = [];
+  for (let i = 0; i < pos.count; i += 1) {
+    const t = Math.max(0, Math.min(1, pos.getY(i) / 900 * 1.6 + 0.25));
+    const c = bot.clone().lerp(top, t);
+    cols.push(c.r, c.g, c.b);
+  }
+  skyGeo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+  const sky = new THREE.Mesh(skyGeo, new THREE.MeshBasicMaterial({ vertexColors: true, side: THREE.BackSide, fog: false }));
+  scene.add(sky);
+  // Warm sun disc + glow sprite.
+  const sun = new THREE.Mesh(new THREE.CircleGeometry(26, 24), new THREE.MeshBasicMaterial({ color: 0xfff3b0, fog: false }));
+  sun.position.set(320, 380, -420); sun.lookAt(0, 0, 0); scene.add(sun);
+  const hemi = new THREE.HemisphereLight(0xcfe8ff, 0x8a7a5a, 1.25);
+  scene.add(hemi);
+  const dir = new THREE.DirectionalLight(0xfff2cc, 1.3);
+  dir.position.set(180, 260, -140); scene.add(dir);
+  // Fill light from the south-west so south-facing facades (the ones the
+  // north-looking FPS shots see) are not left in deep shadow.
+  const fill = new THREE.DirectionalLight(0xdceeff, 0.75);
+  fill.position.set(-160, 140, 220); scene.add(fill);
+  const camera = new THREE.PerspectiveCamera(62, window.innerWidth / window.innerHeight, 0.1, 2000);
+  camera.position.set(0, 40, 120);
+  window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+  return {
+    renderer, scene, camera,
+    render() { renderer.render(scene, camera); },
+    // Point the camera at a target from a position (used by shots + replay).
+    place(px, py, pz, lx, ly, lz) {
+      camera.position.set(px, py, pz);
+      camera.lookAt(lx, ly, lz);
+    },
+  };
+}

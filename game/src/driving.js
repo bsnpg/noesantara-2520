@@ -1,1 +1,50 @@
-const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));export function initDriving(G){const T=G.THREE;G.camMode=G.camMode||'chase';let grp=null;if(G.vehicles&&G.vehicles.garuda)grp=G.vehicles.garuda();else{grp=new T.Group();const m=new T.Mesh(new T.BoxGeometry(1.9,0.5,4.6),new T.MeshStandardMaterial({color:0xd4a017,metalness:0.8,roughness:0.3}));m.position.y=0.65;grp.add(m);grp.userData={kind:'garuda',speed:0,integrity:100,topSpeed:55};}const sx=(G.player&&G.player.pos)?G.player.pos.x:-190;const sz=(G.player&&G.player.pos)?G.player.pos.z:-120;grp.position.set(sx,0.55,sz);if(G.scene)G.scene.add(grp);const car={group:grp,kind:grp.userData.kind||'garuda',speed:0,integrity:100,maxIntegrity:100,topSpeed:grp.userData.topSpeed||55,boostTop:68,boost:100,heading:0,drifting:false,active:false,camDist:9,camH:3.4,lastHit:-9,lane:'LOWER LANE',speedKmh:0,};car.pos=grp.position;car.yaw=0;G.car=car;G._prevKeys=G._prevKeys||{};const pressed=(c)=>(G.pressed?G.pressed.has(c):G.keys[c]&&!G._prevKeys[c]);G.raiseWanted=(n=1)=>{if(G.police){G.police.addHeat(n*20);return G.wanted?G.wanted.stars:n;}return n;};G.setWanted=(n)=>{if(G.police&&G.wanted){const heat=[0,20,40,60,80,95][clamp(n,0,5)];G.wanted.heat=heat;G.wanted.stars=n;G.wanted.hidden=0;}};const near=(a,b,d)=>{const dx=a.x-b.x,dz=a.z-b.z;return dx*dx+dz*dz<d*d;};const crash=(dmg)=>{car.speed*=0.45;car.integrity=Math.max(0,car.integrity-dmg);if(G.time-car.lastHit>1){car.lastHit=G.time;G.raiseWanted(1);}if(G.hud&&typeof G.hud.setIntegrity==='function')G.hud.setIntegrity(car.integrity,car.maxIntegrity);if(car.integrity<=0&&G.hud&&typeof G.hud.showToast==='function')G.hud.showToast('Garuda GT hancur — respawn di garasi Riko');};G.updateDriving=(dt)=>{const k=G.keys||{};if(!car.active)return;if(pressed('KeyE')&&(G.time-(G._eToggleT||-9))>0.5){G._eToggleT=G.time;car.active=false;car.speed=0;if(G.player){G.player.onFoot=true;G.player.group.visible=true;G.player.group.position.set(grp.position.x+2.2,0,grp.position.z+1.5);G.player.yaw=car.heading;}return;}if(pressed('KeyC')){car.camDist=car.camDist===9?13:car.camDist===13?6:9;G.camMode='chase';}const boosting=(k.ShiftLeft||k.ShiftRight)&&car.boost>0&&car.speed>5;const top=boosting?car.boostTop:car.topSpeed;if(k.KeyW||k.ArrowUp)car.speed+=22*dt;if(k.KeyS||k.ArrowDown)car.speed-=car.speed>0.5?34*dt:8*dt;if(!k.KeyW&&!k.ArrowUp&&!k.KeyS&&!k.ArrowDown)car.speed-=Math.sign(car.speed)*6*dt;if(boosting)car.boost=Math.max(0,car.boost-28*dt);else car.boost=Math.min(100,car.boost+8*dt);car.drifting=!!k.Space&&Math.abs(car.speed)>8;if(car.drifting)car.speed-=Math.sign(car.speed)*10*dt;car.speed=clamp(car.speed,-10,top);if(Math.abs(car.speed)<0.2&&!k.KeyW&&!k.KeyS)car.speed=0;car.speedKmh=Math.abs(car.speed)*3.6;car.yaw=car.heading;const steer=((k.KeyA||k.ArrowLeft)?1:0)-((k.KeyD||k.ArrowRight)?1:0);car.heading+=steer*1.9*dt*clamp(car.speed/14,-1,1)*(car.drifting?1.6:1);const fx=-Math.sin(car.heading),fz=-Math.cos(car.heading);grp.position.x+=fx*car.speed*dt;grp.position.z+=fz*car.speed*dt;grp.rotation.y=car.heading;grp.rotation.z=-steer*0.06*clamp(Math.abs(car.speed)/20,0,1);grp.position.y=0.55+Math.sin((G.time||0)*2.2)*0.05;const R=(G.worldRadius||420);if(Math.hypot(grp.position.x,grp.position.z)>R){car.heading+=Math.PI*dt*2;car.speed*=0.9;}const hit=(list,d,dmg,isPed)=>{if(!Array.isArray(list))return;for(const o of list){if(o._hitT!=null&&G.time-o._hitT<1)continue;const p=o.group?o.group.position:o.position;if(!p)continue;if(near(grp.position,p,d)){o._hitT=G.time;if(isPed){const dx=p.x-grp.position.x,dz=p.z-grp.position.z;const l=Math.hypot(dx,dz)||1;o.fx=dx/l;o.fz=dz/l;o.state='flee';o.fleeT=2;if(o.group){o.group.position.x+=fx*2+o.fx*2;o.group.position.z+=fz*2+o.fz*2;}}else if(o.group){o.group.position.x+=fx*1.5;o.group.position.z+=fz*1.5;}crash(dmg);break;}}};hit(G.traffic,3.2,6,false);hit(G.peds,2.2,4,true);if(G.camera){const cd=car.camDist,ch=car.camH;const tx=grp.position.x-fx*cd,tz=grp.position.z-fz*cd;G.camera.position.x+=(tx-G.camera.position.x)*Math.min(1,dt*5);G.camera.position.y+=(ch-G.camera.position.y)*Math.min(1,dt*5);G.camera.position.z+=(tz-G.camera.position.z)*Math.min(1,dt*5);G.camera.lookAt(grp.position.x+fx*6,1.2,grp.position.z+fz*6);}if(G.hud){const kmh=Math.round(Math.abs(car.speed)*3.6);if(typeof G.hud.setSpeed==='function')G.hud.setSpeed(kmh,car.boost/100,car.lane,car.integrity);else{G.hud.speed=kmh;G.hud.boost=car.boost;G.hud.integrity=car.integrity;}}};return car;}
+// driving.js — hover-car physics + chase camera (third person behind the car).
+export function createDriving(ctx) {
+  const d = {
+    speed: 0, // units/s; displayed as km/h = speed * 3.2
+    heading: 0, steer: 0, boost: 100, integrity: 100,
+    kmh() { return Math.round(Math.abs(d.speed) * 3.2); },
+    update(dt) {
+      const input = ctx.input;
+      if (input.wasPressed('KeyE')) { ctx.player.exitCar(); return; }
+      const accel = input.isDown('KeyW') || input.isDown('ArrowUp');
+      const brake = input.isDown('KeyS') || input.isDown('ArrowDown');
+      const left = input.isDown('KeyA') || input.isDown('ArrowLeft');
+      const right = input.isDown('KeyD') || input.isDown('ArrowRight');
+      const boosting = input.isDown('ShiftLeft') && d.boost > 0 && accel;
+      const top = boosting ? 62 : 46;
+      if (accel) d.speed = Math.min(top, d.speed + (boosting ? 26 : 16) * dt);
+      else if (brake) d.speed = Math.max(-12, d.speed - 22 * dt);
+      else d.speed *= Math.max(0, 1 - 0.7 * dt);
+      if (boosting) d.boost = Math.max(0, d.boost - 14 * dt);
+      else d.boost = Math.min(100, d.boost + 4 * dt);
+      const steerTarget = (left ? 1 : 0) - (right ? 1 : 0);
+      d.steer += (steerTarget - d.steer) * Math.min(1, 8 * dt);
+      if (Math.abs(d.speed) > 0.5) d.heading += d.steer * 1.5 * dt * Math.sign(d.speed);
+      const car = ctx.vehicles.hero;
+      car.position.x += Math.cos(d.heading) * d.speed * dt;
+      car.position.z += -Math.sin(d.heading) * d.speed * dt;
+      car.position.x = Math.max(-330, Math.min(330, car.position.x));
+      car.position.z = Math.max(-310, Math.min(310, car.position.z));
+      car.rotation.y = d.heading;
+      car.position.y = 0.25 + Math.sin(ctx.time * 2.4) * 0.07;
+      ctx.progression.markVisited(car.position.x, car.position.z);
+      if (ctx.missions.index === 0 || ctx.missions.index === 3 || ctx.missions.index === 6) {
+        ctx.missions.updateRace(car.position.x, car.position.z);
+      }
+    },
+    // Chase camera: behind + above the car, looking forward.
+    camera(dt) {
+      const car = ctx.vehicles.hero;
+      const back = 11, up = 4.5;
+      const cx = car.position.x - Math.cos(d.heading) * back;
+      const cz = car.position.z + Math.sin(d.heading) * back;
+      const cam = ctx.render.camera;
+      cam.position.x += (cx - cam.position.x) * Math.min(1, 6 * dt);
+      cam.position.y += (up - cam.position.y) * Math.min(1, 6 * dt);
+      cam.position.z += (cz - cam.position.z) * Math.min(1, 6 * dt);
+      cam.lookAt(car.position.x + Math.cos(d.heading) * 14, 2.2, car.position.z - Math.sin(d.heading) * 14);
+    },
+  };
+  return d;
+}

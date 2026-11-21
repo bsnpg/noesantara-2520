@@ -1,1 +1,28 @@
-export function initReplay(G){const R={buf:[],playing:false,t:0,slow:false,cam:0,photo:false,_acc:0,record(){const p=G.player?(G.player.pos||{x:G.player.x||0,z:G.player.z||0}):null;const cp=G.car&&G.car.group?G.car.group.position:null;R.buf.push({t:G.time||0,px:p?p.x:0,pz:p?p.z:0,cx:cp?cp.x:0,cz:cp?cp.z:0,h:(G.player&&G.player.heading)||0,kmh:(G.car&&G.car.speedKmh)||0});if(R.buf.length>80)R.buf.shift();},play(){if(R.buf.length<10)return false;R.playing=true;R.t=Math.max(0,R.buf.length-60);R.cam=0;if(G.hud)G.hud.toast('🏁 FINISH-CAM — tekan Space jeda, S slow-mo, 1–4 kamera, P foto','sub');if(G.audio)G.audio.cheer();return true;},pause(){R.playing=false;},setCam(i){R.cam=i%4;},photoMode(on){R.photo=on==null?!R.photo:on;const hud=document.getElementById('hud');if(hud)hud.style.display=R.photo?'none':'block';if(G.hud)G.hud.toast(R.photo?'Photo mode — HUD sembunyi, kamera bebas (P keluar)':'Photo mode off','sub');},frameAt(i){return R.buf[Math.max(0,Math.min(R.buf.length-1,Math.floor(i)))];},pose(){const f=R.frameAt(R.t);if(!f)return null;const x=f.cx||f.px,z=f.cz||f.pz;if(R.cam===0)return{x:x-14,y:3,z:z+2,lx:x,lz:z};if(R.cam===1)return{x:x-10,y:5,z:z+8,lx:x,lz:z};if(R.cam===2)return{x:x+9,y:4,z:z+9,lx:x,lz:z};return{x:x,y:26,z:z+1,lx:x,lz:z};},update(dt){R._acc+=dt;if(R._acc>=0.1){R._acc=0;if(!R.playing)R.record();}if(R.playing){R.t+=dt*10*(R.slow?0.25:1);if(R.t>=R.buf.length-1){R.playing=false;if(G.hud)G.hud.toast('Replay selesai — tekan R untuk ulang','sub');}const pose=R.pose();if(pose&&G.camera){G.camera.position.set(pose.x,pose.y,pose.z);G.camera.lookAt(pose.lx,1.5,pose.lz);}}},};window.addEventListener('keydown',(e)=>{if(G.state!=='play'&&!R.playing)return;if(e.code==='KeyR'&&G.player&&!G.player.onFoot)R.play();else if(!R.playing)return;else if(e.code==='Space'){R.playing=false;e.preventDefault();}else if(e.code==='KeyS')R.slow=!R.slow;else if(/^Digit[1-4]$/.test(e.code))R.setCam(Number(e.code.slice(5))-1);else if(e.code==='ArrowLeft'||e.code==='ArrowRight')R.setCam((R.cam+(e.code==='ArrowRight'?1:3))%4);});G.replay=R;}
+// replay.js — finish-cam after a race win: 4 cameras, slow-mo, photo mode.
+// R hides the HUD for a clean photo; any key resumes.
+export function createReplay(ctx) {
+  const r = {
+    active: false, cam: 0, t: 0, photo: false,
+    start() {
+      r.active = true; r.cam = 0; r.t = 0;
+      ctx.hud.toast('FINISH — REPLAY · 4 kamera · R = photo mode');
+      ctx.audio.win();
+    },
+    stop() { r.active = false; r.photo = false; document.getElementById('hud').style.display = ''; },
+    update(dt) {
+      if (!r.active) return;
+      r.t += dt;
+      if (r.t > 3.5) { r.cam = (r.cam + 1) % 4; r.t = 0; if (r.cam === 0) { r.stop(); return; } }
+      const car = ctx.vehicles.hero;
+      const a = ctx.time * 0.12 + r.cam * 1.7;
+      const px = car.position.x + Math.cos(a) * 14, pz = car.position.z + Math.sin(a) * 14;
+      ctx.render.place(px, 3 + r.cam, pz, car.position.x, 1.5, car.position.z);
+      if (ctx.input.wasPressed('KeyR')) {
+        r.photo = !r.photo;
+        document.getElementById('hud').style.display = r.photo ? 'none' : '';
+      }
+      if (ctx.input.wasPressed('Escape') || ctx.input.wasPressed('Enter')) r.stop();
+    },
+  };
+  return r;
+}
